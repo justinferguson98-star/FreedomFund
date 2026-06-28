@@ -8470,7 +8470,7 @@ export default function App() {
       const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}&limit=1`, { headers });
       const profData = await profRes.json();
       const prof = profData[0];
-      if (prof) {
+      if (prof && prof.monthly_income) {
         setProfile({
           name: prof.name, income: prof.income, payFreq: prof.pay_freq,
           monthlyIncome: prof.monthly_income, totalFixed: prof.total_fixed,
@@ -8481,6 +8481,8 @@ export default function App() {
         });
         setScreen("app");
       } else {
+        // No profile or profile incomplete — go to onboarding
+        if (prof) setProfile({ name: prof.name }); // keep name if exists
         setScreen("onboarding");
         setAuthReady(true);
         setDbLoading(false);
