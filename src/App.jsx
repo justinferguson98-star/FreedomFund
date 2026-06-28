@@ -8280,6 +8280,8 @@ function QuickStartOnboarding({ onComplete, onFullOnboarding }) {
   const [amount, setAmount] = useState("");
   const [animKey, setAnimKey] = useState(0);
 
+  const fonts = <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />;
+
   const next = () => { setAnimKey(k => k + 1); setStep(s => s + 1); };
 
   const finish = () => {
