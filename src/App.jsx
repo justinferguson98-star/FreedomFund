@@ -3481,10 +3481,27 @@ function WeeklySpendingChart() {
 }
 
 // ── Profile Tab ───────────────────────────────────────────────────────────────
-function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut }) {
+function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = null, onSaveProfile = () => {} }) {
   const totalSaved = goals.reduce((a, g) => a + g.saved, 0);
   const totalTarget = goals.reduce((a, g) => a + g.target, 0);
-  const overallPct = Math.round((totalSaved / totalTarget) * 100);
+  const overallPct = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
+  const [editName,   setEditName]   = useState(profile?.name || "");
+  const [editIncome, setEditIncome] = useState(profile?.monthlyIncome != null ? String(profile.monthlyIncome) : "");
+  const [editFixed,  setEditFixed]  = useState(profile?.totalFixed != null ? String(profile.totalFixed) : "");
+  const [editVar,    setEditVar]    = useState(profile?.totalVariable != null ? String(profile.totalVariable) : "");
+  const [profSaved,  setProfSaved]  = useState(false);
+  const saveDetails = () => {
+    if (!editName.trim()) return;
+    onSaveProfile({
+      ...(profile || {}),
+      name: editName.trim(),
+      monthlyIncome: parseFloat(editIncome) || 0,
+      totalFixed: parseFloat(editFixed) || 0,
+      totalVariable: parseFloat(editVar) || 0,
+    });
+    setProfSaved(true);
+    setTimeout(() => setProfSaved(false), 2500);
+  };
   const initials = userName ? userName.slice(0, 2).toUpperCase() : "ME";
   const [selAch, setSelAch] = useState(null);
 
@@ -3492,7 +3509,7 @@ function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut }) {
     { icon: "target", label: "First Goal Set", earned: true, howTo: "Create your very first savings goal in the Goals tab." },
     { icon: "wallet", label: "First Deposit", earned: goals.some(g => g.saved > 0), howTo: "Make your first deposit into any goal. Tap Add Funds on any goal card." },
     { icon: "fire", label: "7-Day Streak", earned: true, howTo: "Open the app and check your goals 7 days in a row." },
-    { icon: "shield", label: "Emergency Fund Started", earned: goals.some(g => g.name.includes("Emergency")), howTo: "Create an Emergency Fund goal and make at least one deposit." },
+    { icon: "shield", label: "Emergency Fund Started", earned: goals.some(g => (g.name || "").includes("Emergency")), howTo: "Create an Emergency Fund goal and make at least one deposit." },
     { icon: "globe", label: "Community Member", earned: goals.some(g => g.isPublic), howTo: "Set at least one goal to Public in the sharing settings." },
     { icon: "award", label: "Goal Completed", earned: goals.some(g => g.saved >= g.target), howTo: "Reach 100% on any savings goal by depositing consistently." },
     { icon: "lock", label: "No Impulse Withdrawals", earned: true, howTo: "Go 30 days without withdrawing from any locked goal." },
@@ -3620,6 +3637,21 @@ function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut }) {
           </div>
         </div>
       )}
+      {/* My Details — editable */}
+      <div style={S.card}>
+        <SectionLabel>My Details</SectionLabel>
+        <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 14px", lineHeight: 1.5 }}>These numbers drive your whole dashboard. Keep them current when life changes.</p>
+        <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Name</label>
+        <input value={editName} onChange={e => setEditName(e.target.value)} style={{ ...S.input, marginBottom: 12 }} />
+        <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Monthly take-home income ($)</label>
+        <input value={editIncome} onChange={e => setEditIncome(e.target.value)} type="number" style={{ ...S.input, marginBottom: 12 }} />
+        <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Fixed monthly costs ($) — rent, bills, insurance</label>
+        <input value={editFixed} onChange={e => setEditFixed(e.target.value)} type="number" style={{ ...S.input, marginBottom: 12 }} />
+        <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Variable monthly spending ($) — food, fun, extras</label>
+        <input value={editVar} onChange={e => setEditVar(e.target.value)} type="number" style={{ ...S.input, marginBottom: 16 }} />
+        <button onClick={saveDetails} style={{ ...S.primaryBtn(profSaved ? T.green : undefined) }}>{profSaved ? "Saved" : "Save Changes"}</button>
+      </div>
+
       {onSignOut && (
         <button onClick={async () => { await sb.signOut(); onSignOut(); }} style={{ background: "rgba(255,90,110,0.06)", border: "1px solid rgba(255,90,110,0.18)", borderRadius: 12, padding: "13px 0", cursor: "pointer", color: T.red, fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 }}>
           <Icon name="x" size={15} color={T.red} />
@@ -4062,6 +4094,151 @@ function CategorySpendCards({ bills }) {
   );
 }
 
+
+// ── Money Plan Wheel (50/20/20/10) ────────────────────────────────────────────
+function BudgetWheel({ profile }) {
+  const income = profile?.monthlyIncome || 0;
+  const hasData = income > 0;
+  const needsPct = hasData ? Math.min(100, Math.round(((profile?.totalFixed || 0) / income) * 100)) : 50;
+  const wantsPct = hasData ? Math.min(100 - needsPct, Math.round(((profile?.totalVariable || 0) / income) * 100)) : 20;
+  const leftPct  = Math.max(0, 100 - needsPct - wantsPct);
+  const savePct  = hasData ? Math.min(leftPct, Math.max(0, leftPct - 10)) : 20;
+  const givePct  = Math.max(0, leftPct - savePct) || (hasData ? 0 : 10);
+
+  const slices = [
+    { label: "Needs",   pct: needsPct, target: 50, color: "#F5A623", hint: "Housing, groceries, utilities, transport, insurance, minimum debt payments" },
+    { label: "Wants",   pct: wantsPct, target: 20, color: "#FF6B35", hint: "Dining out, entertainment, shopping, vacations, hobbies" },
+    { label: "Save & Invest", pct: savePct, target: 20, color: "#00D2A0", hint: "Emergency fund, retirement, investments, long-term goals" },
+    { label: "Give & Protect", pct: givePct, target: 10, color: "#9B6BFF", hint: "Giving, donations, life and health insurance, emergency prep" },
+  ];
+
+  let offset = 25; // start at 12 o clock
+  const segs = slices.map(s => {
+    const seg = { ...s, dash: Math.max(0.5, s.pct), off: offset };
+    offset -= s.pct;
+    return seg;
+  });
+
+  const [sel, setSel] = useState(null);
+
+  return (
+    <div style={S.card}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <SectionLabel>My Money Plan</SectionLabel>
+        <span style={{ color: T.textSub, fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>50 / 20 / 20 / 10</span>
+      </div>
+      <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.5 }}>
+        {hasData ? "Your real split vs the classic plan. Tap a slice." : "The classic plan. Add your income in Profile to see your real split."}
+      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <svg width="132" height="132" viewBox="0 0 132 132">
+            {segs.map(s => (
+              <circle key={s.label} cx="66" cy="66" r="52" fill="none" stroke={s.color} strokeWidth={sel === s.label ? 22 : 17}
+                pathLength="100" strokeDasharray={`${s.dash} ${100 - s.dash}`} strokeDashoffset={s.off}
+                opacity={sel && sel !== s.label ? 0.25 : 1}
+                onClick={() => setSel(sel === s.label ? null : s.label)}
+                style={{ cursor: "pointer", transition: "all 0.25s" }} />
+            ))}
+          </svg>
+          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", pointerEvents: "none", width: 78 }}>
+            <p style={{ color: T.text, fontSize: 10, fontWeight: 800, margin: 0, letterSpacing: 0.4, lineHeight: 1.4 }}>FINANCIAL FREEDOM</p>
+          </div>
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
+          {slices.map(s => {
+            const diff = s.pct - s.target;
+            const onPlan = !hasData || Math.abs(diff) <= 5;
+            return (
+              <div key={s.label} onClick={() => setSel(sel === s.label ? null : s.label)} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", opacity: sel && sel !== s.label ? 0.4 : 1, transition: "opacity 0.2s" }}>
+                <div style={{ width: 9, height: 9, borderRadius: 3, background: s.color, flexShrink: 0 }} />
+                <p style={{ color: T.text, fontSize: 12, fontWeight: 600, margin: 0, flex: 1 }}>{s.label}</p>
+                <p style={{ color: hasData ? (onPlan ? T.green : T.red) : T.textMid, fontSize: 12, fontWeight: 800, margin: 0 }}>{s.pct}%</p>
+                <p style={{ color: T.textSub, fontSize: 10, margin: 0 }}>/ {s.target}%</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {sel && (
+        <p style={{ color: T.textMid, fontSize: 12, margin: "12px 0 0", lineHeight: 1.55, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 13px" }}>
+          {slices.find(s => s.label === sel)?.hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+
+// ── How You Compare (national benchmarks, fully private) ─────────────────────
+function BenchmarkCard({ profile, assets = [], liabs = [] }) {
+  const income = profile?.monthlyIncome || 0;
+  if (!income) return null;
+
+  const fixed  = profile?.totalFixed || 0;
+  const variable = profile?.totalVariable || 0;
+  const leftover = Math.max(0, income - fixed - variable);
+  const saveRate = Math.round((leftover / income) * 100);
+  const fixedShare = Math.round((fixed / income) * 100);
+  const liquid = assets.filter(a => ["Cash", "Savings"].includes(a.cat)).reduce((s, a) => s + (a.amount || 0), 0);
+  const monthsCovered = income > 0 ? liquid / Math.max(1, fixed + variable) : 0;
+  const netWorth = assets.reduce((s, a) => s + (a.amount || 0), 0) - liabs.reduce((s, l) => s + (l.amount || 0), 0);
+
+  const band = (v, avg, higherBetter = true) => {
+    const ratio = avg === 0 ? 1 : v / avg;
+    const good = higherBetter ? ratio >= 1.15 : ratio <= 0.85;
+    const bad  = higherBetter ? ratio < 0.7  : ratio > 1.2;
+    return good ? { t: "Ahead of average", c: T.green } : bad ? { t: "Below average", c: T.red } : { t: "Around average", c: T.gold };
+  };
+
+  const rows = [
+    { label: "Savings rate", you: `${saveRate}%`, avg: "about 5%", meta: band(saveRate, 5),
+      note: "Share of take-home pay you keep each month. The US personal saving rate has hovered near 5 percent in recent years." },
+    { label: "Fixed costs", you: `${fixedShare}%`, avg: "about 50%", meta: band(fixedShare, 50, false),
+      note: "Housing and other fixed bills as a share of income. Spending over 30 percent on housing alone is considered cost burdened." },
+    { label: "Emergency cushion", you: `${monthsCovered >= 10 ? "10+" : monthsCovered.toFixed(1)} mo`, avg: "under 1 mo", meta: band(monthsCovered, 1),
+      note: "Months your cash could cover expenses. Roughly 4 in 10 US adults could not cover a surprise $1,000 expense with savings." },
+    { label: "Net worth", you: netWorth >= 0 ? `$${Math.round(netWorth).toLocaleString()}` : `-$${Math.abs(Math.round(netWorth)).toLocaleString()}`,
+      avg: "varies by age", meta: netWorth > 0 ? { t: "Positive", c: T.green } : { t: "Negative", c: T.red },
+      note: "Everything you own minus everything you owe. Positive net worth means you are building, not borrowing." },
+  ];
+
+  const [open, setOpen] = useState(null);
+  const wins = rows.filter(r => r.meta.c === T.green).length;
+
+  return (
+    <div style={S.card}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <SectionLabel>How You Compare</SectionLabel>
+        <span style={{ background: "rgba(0,210,160,0.12)", color: T.green, border: "1px solid rgba(0,210,160,0.3)", fontSize: 10, fontWeight: 800, padding: "2px 9px", borderRadius: 99 }}>{wins}/4 ahead</span>
+      </div>
+      <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.5 }}>Your numbers against national averages. Tap a row for the detail.</p>
+
+      {rows.map((r, i) => (
+        <div key={r.label} onClick={() => setOpen(open === r.label ? null : r.label)} style={{ padding: "11px 0", borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: T.text, fontWeight: 600, fontSize: 13, margin: 0 }}>{r.label}</p>
+              <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Typical: {r.avg}</p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <p style={{ color: T.text, fontWeight: 800, fontSize: 15, margin: 0 }}>{r.you}</p>
+              <p style={{ color: r.meta.c, fontSize: 10, fontWeight: 700, margin: "2px 0 0" }}>{r.meta.t}</p>
+            </div>
+          </div>
+          {open === r.label && (
+            <p style={{ color: T.textMid, fontSize: 12, margin: "10px 0 0", lineHeight: 1.55, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 13px" }}>{r.note}</p>
+          )}
+        </div>
+      ))}
+
+      <p style={{ color: T.textSub, fontSize: 10, margin: "12px 0 0", lineHeight: 1.5, textAlign: "center" }}>
+        Compared with published national averages, not other users. Your numbers never leave your account.
+      </p>
+    </div>
+  );
+}
+
 function BillsTab({ profileSubs = [], initialBills = [], onPersist = () => {}, onDelete = () => {} }) {
   const merged = [];
   profileSubs.forEach(s => {
@@ -4441,6 +4618,35 @@ function NetWorthTab({ goals, profile, initialAssets = [], initialLiabs = [], on
   const W = 340, H = 80;
   const pts = history.map((h, i) => `${(i / (history.length - 1)) * W},${H - ((h.nw - minNW) / (maxNW - minNW || 1)) * (H - 12) - 6}`).join(" ");
 
+  const [editItem, setEditItem] = useState(null); // { kind: "asset"|"liab", id }
+
+  const startEdit = (kind, item) => {
+    setEditItem({ kind, id: item.id });
+    setNewName(item.name); setNewAmt(String(item.amount)); setNewCat(item.cat || "");
+    setNewRate(kind === "liab" ? String(item.rate || "") : "");
+    setShowAddA(false); setShowAddL(false);
+  };
+  const cancelEdit = () => { setEditItem(null); setNewName(""); setNewAmt(""); setNewRate(""); setNewCat(""); };
+  const saveEdit = () => {
+    if (!newName || !newAmt || !editItem) return;
+    if (editItem.kind === "asset") {
+      setAssets(p => p.map(x => {
+        if (x.id !== editItem.id) return x;
+        const nx = { ...x, name: newName, amount: parseFloat(newAmt), cat: newCat || "Other" };
+        onPersistAsset(nx);
+        return nx;
+      }));
+    } else {
+      setLiabilities(p => p.map(x => {
+        if (x.id !== editItem.id) return x;
+        const nx = { ...x, name: newName, amount: parseFloat(newAmt), rate: parseFloat(newRate) || 0, cat: newCat || "Other" };
+        onPersistLiab(nx);
+        return nx;
+      }));
+    }
+    cancelEdit();
+  };
+
   const addAsset = () => { if (!newName || !newAmt) return; const obj = { id: Date.now(), name: newName, amount: parseFloat(newAmt), cat: newCat || "Other", icon: "dollarSign" }; setAssets(p => [...p, obj]); onPersistAsset(obj); setNewName(""); setNewAmt(""); setNewCat(""); setShowAddA(false); };
   const addLiability = () => { if (!newName || !newAmt) return; const obj = { id: Date.now(), name: newName, amount: parseFloat(newAmt), rate: parseFloat(newRate) || 0, cat: newCat || "Other", icon: "dollarSign" }; setLiabilities(p => [...p, obj]); onPersistLiab(obj); setNewName(""); setNewAmt(""); setNewRate(""); setNewCat(""); setShowAddL(false); };
 
@@ -4505,9 +4711,9 @@ function NetWorthTab({ goals, profile, initialAssets = [], initialLiabs = [], on
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(29,217,160,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Icon name={a.icon} size={15} color={T.green} />
             </div>
-            <div style={{ flex: 1 }}>
+            <div onClick={() => !a.isGoal && startEdit("asset", a)} style={{ flex: 1, cursor: a.isGoal ? "default" : "pointer" }}>
               <p style={{ color: T.text, fontSize: 13, fontWeight: 600, margin: 0 }}>{a.name}</p>
-              <p style={{ color: T.textSub, fontSize: 11, margin: "1px 0 0" }}>{a.cat}</p>
+              <p style={{ color: T.textSub, fontSize: 11, margin: "1px 0 0" }}>{a.isGoal ? a.cat : `${a.cat} \u00B7 tap to edit`}</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <p style={{ color: T.green, fontWeight: 700, fontSize: 14, margin: 0 }}>${a.amount.toLocaleString()}</p>
@@ -4543,9 +4749,9 @@ function NetWorthTab({ goals, profile, initialAssets = [], initialLiabs = [], on
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,90,110,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Icon name={l.icon} size={15} color={T.red} />
             </div>
-            <div style={{ flex: 1 }}>
+            <div onClick={() => startEdit("liab", l)} style={{ flex: 1, cursor: "pointer" }}>
               <p style={{ color: T.text, fontSize: 13, fontWeight: 600, margin: 0 }}>{l.name}</p>
-              <p style={{ color: T.textSub, fontSize: 11, margin: "1px 0 0" }}>{l.rate}% APR &middot; {l.cat}</p>
+              <p style={{ color: T.textSub, fontSize: 11, margin: "1px 0 0" }}>{l.rate}% APR &middot; {l.cat} &middot; tap to edit</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <p style={{ color: T.red, fontWeight: 700, fontSize: 14, margin: 0 }}>${l.amount.toLocaleString()}</p>
@@ -4575,6 +4781,30 @@ function NetWorthTab({ goals, profile, initialAssets = [], initialLiabs = [], on
       </div>
 
       <p style={{ color: "#1A2740", fontSize: 11, textAlign: "center" }}>Net worth is calculated from assets and liabilities you enter here. Connect your bank for automatic updates.</p>
+      {editItem && (
+        <div onClick={cancelEdit} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: T.card, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 22, width: "100%", maxWidth: 340 }}>
+            <p style={{ color: T.text, fontWeight: 800, fontSize: 16, margin: "0 0 14px" }}>Edit {editItem.kind === "asset" ? "Asset" : "Debt"}</p>
+            <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Name</label>
+            <input value={newName} onChange={e => setNewName(e.target.value)} style={{ ...S.input, marginBottom: 12 }} />
+            <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>{editItem.kind === "asset" ? "Current value ($)" : "Current balance ($)"}</label>
+            <input value={newAmt} onChange={e => setNewAmt(e.target.value)} type="number" style={{ ...S.input, marginBottom: 12 }} />
+            {editItem.kind === "liab" && (
+              <>
+                <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Interest rate (% APR)</label>
+                <input value={newRate} onChange={e => setNewRate(e.target.value)} type="number" style={{ ...S.input, marginBottom: 12 }} />
+              </>
+            )}
+            <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Category</label>
+            <input value={newCat} onChange={e => setNewCat(e.target.value)} style={{ ...S.input, marginBottom: 16 }} />
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={cancelEdit} style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 999, padding: "13px 0", cursor: "pointer", color: T.textMid, fontWeight: 600, fontSize: 14, fontFamily: "'Inter',sans-serif" }}>Cancel</button>
+              <button onClick={saveEdit} style={{ flex: 1, ...S.primaryBtn() }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -8538,6 +8768,58 @@ const SCHOOL_STANDARDS = [
   { unit: 4, cats: ["Credit & Debt", "Risk Management & Insurance"] },
 ];
 
+
+const DAILY_TIPS = [
+  { t: "Pay yourself first", b: "The moment money arrives, move a slice to savings before you spend a dollar. Saving what is left over almost never works — there is rarely anything left." },
+  { t: "The 24-hour rule", b: "Want something over $50 that is not a need? Wait 24 hours. Most wants quietly die overnight. The ones that survive were probably worth it." },
+  { t: "Know your number", b: "Add up what one month of your life costs. That single number tells you what an emergency fund needs to hold and what freedom actually costs." },
+  { t: "Audit your subscriptions", b: "The average person pays for 3 subscriptions they forgot existed. Check your statement today. Every cancellation is a raise you gave yourself." },
+  { t: "Round up every purchase", b: "Mentally round every purchase up to the next $10. You will spend slightly less and your budget will always have a hidden cushion." },
+  { t: "Interest works both ways", b: "At 20% APR, debt doubles in under 4 years. At 8% growth, savings doubles in 9. Same math, opposite directions. Pick a side." },
+  { t: "Name your savings", b: "Money labeled Emergency Fund gets spent far less than money sitting in Savings. Naming a goal makes it real and makes it protected." },
+  { t: "The cost is in hours", b: "Divide any price by your hourly wage. A $120 pair of shoes at $15 an hour costs 8 hours of your life. Decide if it is worth the trade." },
+  { t: "Automate one thing", b: "Willpower fails. Systems do not. Set one automatic transfer to savings today and you never have to decide again." },
+  { t: "Check before you charge", b: "Before any credit card purchase ask: can I pay this off in full this month? If not, you cannot afford it yet." },
+  { t: "Your credit score is a rate", b: "A great score is not bragging rights — it is thousands saved on a car loan or mortgage. It is the cheapest money you will ever earn." },
+  { t: "Small leaks sink budgets", b: "A $6 daily habit is $2,190 a year. Not every leak needs plugging, but you should know which ones you chose." },
+  { t: "Emergency fund first, always", b: "Investing before you have an emergency fund means selling investments at the worst time. Build the buffer, then build wealth." },
+  { t: "Compare rates, not payments", b: "Salespeople sell low monthly payments by stretching the term. Always compare total cost and interest rate, never the payment alone." },
+  { t: "The employer match is free", b: "If your job matches retirement contributions and you do not contribute, you are declining part of your salary. Grab the full match first." },
+  { t: "Sleep on big purchases", b: "For anything over a week of pay, wait a full week. Urgency is a sales tactic, almost never a real condition." },
+  { t: "Debt avalanche wins", b: "Paying highest-interest debt first saves the most money. Paying the smallest balance first feels best. Both work — pick the one you will actually finish." },
+  { t: "Track for one week", b: "You cannot fix what you cannot see. Track every dollar for seven days. Nearly everyone finds a surprise they did not expect." },
+  { t: "Raises are dangerous", b: "Lifestyle inflation eats most raises within 90 days. Bank half of every raise before you get used to it and you get richer automatically." },
+  { t: "Insurance is not a scam", b: "Insurance is how you avoid a single bad day erasing a decade of saving. Buy it for catastrophes, not for small stuff you can absorb." },
+  { t: "Free is rarely free", b: "Free trials, free shipping thresholds, and buy-now-pay-later all exist to make you spend more. Ask what the free thing is protecting." },
+  { t: "Time beats timing", b: "Money invested consistently for 20 years beats money invested perfectly for 5. Nobody times markets reliably. Consistency is the edge." },
+  { t: "Cash feels different", b: "People spend up to 20% more with a card than with cash. For problem categories, try cash for a month and watch the number drop." },
+  { t: "Your net worth is the scoreboard", b: "Income is how fast you are going. Net worth is how far you have traveled. Assets minus debts — that is the only score that counts." },
+  { t: "Negotiate one bill", b: "Call your phone or internet provider and ask for a better rate. Fifteen minutes for a permanent monthly discount is the best hourly rate you will ever earn." },
+  { t: "Beware the minimum payment", b: "Paying only minimums on a $2,000 balance can take over a decade and cost more in interest than the original purchases. Always pay more." },
+  { t: "Write the goal down", b: "Written goals get hit far more often than mental ones. Put a number and a date on it — vague hopes do not move money." },
+  { t: "One account for bills", b: "Keep fixed bills in their own account. What is left in checking is truly spendable — no more mental math, no more accidental overdrafts." },
+  { t: "Buy quality once", b: "For things you use daily, cheap costs more over time. Shoes, tools, a mattress — the cost per use is what matters, not the sticker." },
+  { t: "Freedom is the goal", b: "The point is not to be the richest person you know. It is to reach the day where work is a choice. Every dollar saved buys a piece of that." }
+];
+
+const WEEKLY_CHALLENGES = [
+  { id: 1, title: "No-Spend Weekend", body: "Get through Saturday and Sunday without a single non-essential purchase.", xp: 120 },
+  { id: 2, title: "Cancel One Subscription", body: "Find one subscription you forgot about and cancel it. Instant permanent raise.", xp: 100 },
+  { id: 3, title: "Track Every Dollar", body: "Write down every purchase for 7 straight days. No judgment, just data.", xp: 150 },
+  { id: 4, title: "Negotiate a Bill", body: "Call one provider and ask for a better rate. Worst case they say no.", xp: 180 },
+  { id: 5, title: "Add $25 to a Goal", body: "Move $25 into any savings goal this week. Small and repeatable beats big and rare.", xp: 100 },
+  { id: 6, title: "Pack Every Lunch", body: "Bring lunch from home all five weekdays. Count what you saved.", xp: 120 },
+  { id: 7, title: "Read Your Statement", body: "Go through last month line by line. Circle anything that surprises you.", xp: 100 },
+  { id: 8, title: "Set One Automation", body: "Create one automatic transfer to savings, however small.", xp: 150 },
+  { id: 9, title: "Sell One Thing", body: "Sell something you have not used in a year. Put the money into a goal.", xp: 130 },
+  { id: 10, title: "Emergency Fund Sprint", body: "Add anything you can to your emergency fund this week. Any amount counts.", xp: 140 },
+  { id: 11, title: "Price Your Wants", body: "List everything you want to buy. Convert each to hours of work at your wage.", xp: 110 },
+  { id: 12, title: "Teach Someone", body: "Explain one money lesson you learned to a friend or family member.", xp: 120 }
+];
+
+const ffDayIndex = () => Math.floor(Date.now() / 86400000);
+const ffWeekIndex = () => Math.floor(Date.now() / (86400000 * 7));
+
 const SCHOOL_ROADMAP = [
   { n: 1, type: "unit", unitId: 1, title: "Money Basics",           sub: "What money is and how to think about it" },
   { n: 2, type: "unit", unitId: 2, title: "Earning",                sub: "Jobs, paychecks, taxes, and hustles" },
@@ -8649,6 +8931,43 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
   const [joinCode,         setJoinCode]           = useState("");
   const [newClassName,     setNewClassName]       = useState("");
   const [classMsg,         setClassMsg]           = useState("");
+  const [dailyDone,   setDailyDone]   = useState(initialProgress?.dailyDays || []);
+  const [chDone,      setChDone]      = useState(initialProgress?.challenges || []);
+  const [showTipBody, setShowTipBody] = useState(false);
+
+  const today = ffDayIndex();
+  const week  = ffWeekIndex();
+  const tip   = DAILY_TIPS[today % DAILY_TIPS.length];
+  const chal  = WEEKLY_CHALLENGES[week % WEEKLY_CHALLENGES.length];
+  const tipDoneToday = dailyDone.includes(today);
+  const chalDoneWeek = chDone.includes(week);
+
+  const dayStreak = (() => {
+    let n = 0;
+    for (let d = today; dailyDone.includes(d); d--) n++;
+    if (n === 0) { for (let d = today - 1; dailyDone.includes(d); d--) n++; }
+    return n;
+  })();
+
+  const saveAll = (over = {}) => onSaveProgress({
+    lessons: completedLessons, quizzes: completedQuizzes, xp,
+    dailyDays: dailyDone, challenges: chDone, ...over,
+  });
+
+  const markDaily = () => {
+    if (tipDoneToday) return;
+    const nd = [...dailyDone, today].slice(-400);
+    const nx = xp + 20;
+    setDailyDone(nd); setXp(nx);
+    saveAll({ dailyDays: nd, xp: nx });
+  };
+  const markChallenge = () => {
+    if (chalDoneWeek) return;
+    const nc = [...chDone, week].slice(-120);
+    const nx = xp + chal.xp;
+    setChDone(nc); setXp(nx);
+    saveAll({ challenges: nc, xp: nx });
+  };
 
   const q = async (path) => {
     try {
@@ -8729,7 +9048,7 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
     const nx = xp + (les?.xp || 50);
     setCompletedLessons(nl);
     setXp(nx);
-    onSaveProgress({ lessons: nl, quizzes: completedQuizzes, xp: nx });
+    onSaveProgress({ lessons: nl, quizzes: completedQuizzes, xp: nx, dailyDays: dailyDone, challenges: chDone });
   };
 
   // Teacher view
@@ -8919,7 +9238,7 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
             })}
           </div>
           {!quizSubmitted
-            ? <button onClick={() => { if (quizAnswer !== null) { setQuizSubmitted(true); if (quizAnswer === lesson.quiz.correct && !completedQuizzes.includes(lesson.id)) { const nq = [...completedQuizzes, lesson.id]; const nx = xp + Math.round(lesson.xp * 0.5); setCompletedQuizzes(nq); setXp(nx); onSaveProgress({ lessons: completedLessons, quizzes: nq, xp: nx }); } } }} style={{ ...S.primaryBtn(), opacity: quizAnswer !== null ? 1 : 0.4 }}>Check My Answer</button>
+            ? <button onClick={() => { if (quizAnswer !== null) { setQuizSubmitted(true); if (quizAnswer === lesson.quiz.correct && !completedQuizzes.includes(lesson.id)) { const nq = [...completedQuizzes, lesson.id]; const nx = xp + Math.round(lesson.xp * 0.5); setCompletedQuizzes(nq); setXp(nx); onSaveProgress({ lessons: completedLessons, quizzes: nq, xp: nx, dailyDays: dailyDone, challenges: chDone }); } } }} style={{ ...S.primaryBtn(), opacity: quizAnswer !== null ? 1 : 0.4 }}>Check My Answer</button>
             : isPassed
               ? <div style={{ background: "rgba(0,210,160,0.1)", border: "1px solid rgba(0,210,160,0.25)", borderRadius: 10, padding: 14, textAlign: "center" }}>
                   <p style={{ color: T.green, fontWeight: 800, fontSize: 16, margin: "0 0 4px" }}>Correct! +{Math.round(lesson.xp * 0.5)} XP</p>
@@ -8966,6 +9285,57 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
         </div>
         <ProgressBar pct={pct} color={T.purple} height={7} />
         <p style={{ color: T.textSub, fontSize: 11, margin: "7px 0 0" }}>{pct}% of the full curriculum complete</p>
+      </div>
+
+      {/* Today: daily lesson + streak */}
+      <div style={{ ...S.card, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 100% 0%, rgba(245,166,35,0.1) 0%, transparent 60%)", pointerEvents: "none" }} />
+        <div style={{ position: "relative" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <SectionLabel>Today</SectionLabel>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, background: dayStreak > 0 ? "rgba(245,166,35,0.14)" : "rgba(255,255,255,0.05)", border: `1px solid ${dayStreak > 0 ? "rgba(245,166,35,0.35)" : "rgba(255,255,255,0.1)"}`, borderRadius: 99, padding: "4px 11px" }}>
+              <Icon name="fire" size={13} color={dayStreak > 0 ? T.gold : T.textSub} />
+              <span style={{ color: dayStreak > 0 ? T.gold : T.textSub, fontSize: 12, fontWeight: 800 }}>{dayStreak} day{dayStreak === 1 ? "" : "s"}</span>
+            </div>
+          </div>
+
+          <p style={{ color: T.text, fontWeight: 800, fontSize: 17, margin: "0 0 6px", letterSpacing: -0.3 }}>{tip.t}</p>
+          <p style={{ color: T.textMid, fontSize: 13, margin: "0 0 14px", lineHeight: 1.6 }}>
+            {showTipBody || tipDoneToday ? tip.b : `${tip.b.slice(0, 74)}...`}
+          </p>
+
+          {!showTipBody && !tipDoneToday && (
+            <button onClick={() => setShowTipBody(true)} style={{ ...S.ghostBtn, marginBottom: 10 }}>Read Today Lesson</button>
+          )}
+          {(showTipBody || tipDoneToday) && (
+            <button onClick={markDaily} disabled={tipDoneToday} style={{ ...S.primaryBtn(tipDoneToday ? T.green : undefined), opacity: tipDoneToday ? 0.85 : 1, cursor: tipDoneToday ? "default" : "pointer" }}>
+              {tipDoneToday ? "Done today — come back tomorrow" : "Mark Complete  +20 XP"}
+            </button>
+          )}
+          <p style={{ color: T.textSub, fontSize: 11, margin: "10px 0 0", textAlign: "center" }}>
+            {tipDoneToday ? "New lesson unlocks tomorrow. Keep the streak alive." : "A new money lesson every single day."}
+          </p>
+        </div>
+      </div>
+
+      {/* Challenge of the week */}
+      <div style={S.card}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <SectionLabel>Challenge of the Week</SectionLabel>
+          <span style={{ background: "rgba(0,210,160,0.12)", color: T.green, border: "1px solid rgba(0,210,160,0.3)", fontSize: 10, fontWeight: 800, padding: "2px 9px", borderRadius: 99 }}>+{chal.xp} XP</span>
+        </div>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: chalDoneWeek ? "rgba(0,210,160,0.15)" : "rgba(124,92,252,0.14)", border: `1px solid ${chalDoneWeek ? "rgba(0,210,160,0.4)" : "rgba(124,92,252,0.32)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icon name={chalDoneWeek ? "check" : "target"} size={18} color={chalDoneWeek ? T.green : T.purple} strokeWidth={2} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ color: T.text, fontWeight: 700, fontSize: 15, margin: "0 0 4px" }}>{chal.title}</p>
+            <p style={{ color: T.textSub, fontSize: 12, margin: 0, lineHeight: 1.55 }}>{chal.body}</p>
+          </div>
+        </div>
+        <button onClick={markChallenge} disabled={chalDoneWeek} style={{ ...(chalDoneWeek ? S.primaryBtn(T.green) : S.primaryBtn()), marginTop: 14, opacity: chalDoneWeek ? 0.85 : 1, cursor: chalDoneWeek ? "default" : "pointer" }}>
+          {chalDoneWeek ? "Completed this week" : "I Did It"}
+        </button>
       </div>
 
       {/* Classroom */}
@@ -9492,7 +9862,7 @@ export default function App() {
 
       // Load school progress
       const sRows = await dbRows("school_progress", uid);
-      if (sRows[0]) setDbSchool({ lessons: sRows[0].lessons || [], quizzes: sRows[0].quizzes || [], xp: sRows[0].xp || 0 });
+      if (sRows[0]) setDbSchool({ lessons: sRows[0].lessons || [], quizzes: sRows[0].quizzes || [], xp: sRows[0].xp || 0, dailyDays: sRows[0].daily_days || [], challenges: sRows[0].challenges || [] });
 
     } catch (err) {
       console.error("Error loading user data:", err);
@@ -9563,7 +9933,7 @@ export default function App() {
     fetch(`${SUPABASE_URL}/rest/v1/school_progress?on_conflict=user_id`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": `Bearer ${sb._token() || SUPABASE_KEY}`, "Prefer": "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify({ user_id: authUser.id, lessons: p.lessons, quizzes: p.quizzes, xp: p.xp }),
+      body: JSON.stringify({ user_id: authUser.id, lessons: p.lessons, quizzes: p.quizzes, xp: p.xp, daily_days: p.dailyDays || [], challenges: p.challenges || [] }),
     }).catch(e => console.error("school save", e));
   };
 
@@ -9639,20 +10009,20 @@ export default function App() {
     { id: "hustle",    icon: "zap",        label: "Hustle"    },
     { id: "tax",       icon: "barChart",   label: "Tax"       },
     { id: "emergency", icon: "shield",     label: "Emergency" },
-    { id: "joneses",   icon: "users",      label: "Joneses"   },
-    { id: "referral",  icon: "send",       label: "Referral"  },
+    { id: "joneses",   icon: "users",      label: "Joneses", hidden: true   },
+    { id: "referral",  icon: "send",       label: "Referral", hidden: true  },
     { id: "school",    icon: "award",      label: "School"    },
-    { id: "learn",     icon: "award",      label: "Learn"     },
+    { id: "learn",     icon: "award",      label: "Learn", hidden: true     },
     { id: "credit",    icon: "shield",     label: "Credit"    },
     { id: "couple",    icon: "users",      label: "Couple"    },
     { id: "insights",  icon: "zap",        label: "Insights"  },
-    { id: "review",    icon: "award",      label: "Year"      },
-    { id: "health",    icon: "shield",     label: "Health"    },
+    { id: "review",    icon: "award",      label: "Year", hidden: true      },
+    { id: "health",    icon: "shield",     label: "Health", hidden: true    },
     { id: "whatif",    icon: "zap",        label: "What-If"   },
-    { id: "community", icon: "users",      label: "Community" },
-    { id: "analytics", icon: "pieChart",   label: "Stats"     },
+    { id: "community", icon: "users",      label: "Community", hidden: true },
+    { id: "analytics", icon: "pieChart",   label: "Stats", hidden: true     },
     { id: "invest",    icon: "trendUp",    label: "Invest"    },
-    { id: "deals",     icon: "dollarSign", label: "Deals"     },
+    { id: "deals",     icon: "dollarSign", label: "Deals", hidden: true     },
     { id: "profile",   icon: "user",       label: "Profile"   },
   ];
 
@@ -9767,6 +10137,10 @@ export default function App() {
               </div>
             </div>
           </button>
+
+          <BudgetWheel profile={profile} />
+
+          <BenchmarkCard profile={profile} assets={dbAssets} liabs={dbLiabs} />
 
           {/* Row 1: Weekly sparkline + Freedom donut */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -10014,7 +10388,20 @@ export default function App() {
         </div>
       )}
 
-      {tab === "school"    && <div style={{ paddingTop: 16 }}><SchoolMode onExitSchoolMode={() => setTab("home")} initialProgress={dbSchool} onSaveProgress={persistSchool} studentName={profile?.name || ""} userId={authUser?.id} onNavigate={t => setTab(t)} /></div>}
+      {tab === "school"    && <div style={{ paddingTop: 16 }}><SchoolMode onExitSchoolMode={() => setTab("home")} initialProgress={dbSchool} onSaveProgress={persistSchool} studentName={profile?.name || ""} userId={authUser?.id} onNavigate={t => setTab(t)} />
+        <div style={{ padding: "0 16px 8px" }}>
+          <button onClick={() => setTab("learn")} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 16, padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", fontFamily: "'Inter',sans-serif" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 11, background: "rgba(124,92,252,0.14)", border: "1px solid rgba(124,92,252,0.32)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Icon name="book" size={17} color={T.purple} strokeWidth={1.8} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>Article Library</p>
+              <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Longer reads on money topics</p>
+            </div>
+            <Icon name="chevronLeft" size={14} color={T.textSub} style={{ transform: "rotate(180deg)" }} />
+          </button>
+        </div>
+      </div>}
       {tab === "hustle"    && <div style={{ paddingTop: 16 }}><SideHustleTab profile={profile} /></div>}
       {tab === "tax"       && <div style={{ paddingTop: 16 }}><TaxEstimator profile={profile} /></div>}
       {tab === "emergency" && <div style={{ paddingTop: 16 }}><EmergencyFundCalc profile={profile} goals={goals} onNavigate={setTab} /></div>}
@@ -10027,14 +10414,40 @@ export default function App() {
       {tab === "learn"     && <div style={{ paddingTop: 16 }}><InvestEducationPath /></div>}
       {tab === "credit"    && <div style={{ paddingTop: 16 }}><CreditScoreTracker /></div>}
       {tab === "couple"    && <div style={{ paddingTop: 16 }}><CoupleMode profile={profile} goals={goals} /></div>}
-      {tab === "insights"  && <div style={{ paddingTop: 16 }}><SmartRecommendations goals={goals} profile={profile} bills={INITIAL_BILLS} /></div>}
+      {tab === "insights"  && (
+        <div style={{ paddingTop: 16 }}>
+          <SmartRecommendations goals={goals} profile={profile} bills={INITIAL_BILLS} />
+          <div style={{ padding: "0 16px" }}>
+            <div style={S.card}>
+              <SectionLabel>More Reports</SectionLabel>
+              <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.5 }}>Deeper views of the same data.</p>
+              {[
+                { id: "health",    icon: "shield",   color: T.green,  title: "Financial Health Score", sub: "One score across savings, debt, and habits" },
+                { id: "analytics", icon: "pieChart", color: T.blue,   title: "Spending Stats",         sub: "Charts and category breakdowns" },
+                { id: "review",    icon: "award",    color: T.gold,   title: "Year in Review",         sub: "Your progress across the whole year" },
+              ].map((r, i) => (
+                <button key={r.id} onClick={() => setTab(r.id)} style={{ width: "100%", background: "none", border: "none", borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.06)", padding: "12px 2px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", fontFamily: "'Inter',sans-serif" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 11, background: `${r.color}18`, border: `1px solid ${r.color}3d`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon name={r.icon} size={17} color={r.color} strokeWidth={1.8} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>{r.title}</p>
+                    <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>{r.sub}</p>
+                  </div>
+                  <Icon name="chevronLeft" size={14} color={T.textSub} style={{ transform: "rotate(180deg)" }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {tab === "review"    && <div style={{ paddingTop: 16 }}><AnnualReview goals={goals} profile={profile} checkInLog={checkInLog} streak={streak} /></div>}
       {tab === "calendar" && <div style={{ paddingTop: 16 }}><FinancialCalendar goals={goals} bills={INITIAL_BILLS} checkInLog={checkInLog} profile={profile} /></div>}
       {tab === "bills" && <div style={{ paddingTop: 16 }}><BillsTab profileSubs={profile?.subscriptionsList || []} initialBills={dbBills} onPersist={persistBill} onDelete={removeBillDb} /></div>}
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
       {tab === "deals" && <div style={{ paddingTop: 16 }}><DealsTab /></div>}
-      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setAuthReady(true); }} /></div>}
+      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setAuthReady(true); }} /></div>}
 
       {/* Bottom Nav — primary 6 tabs + More */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(8,9,26,0.97)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(123,110,246,0.15)", zIndex: 100, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)" }}>
@@ -10045,7 +10458,7 @@ export default function App() {
             <div style={{ position: "absolute", bottom: "100%", left: 0, right: 0, background: "rgba(8,9,26,0.98)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(123,110,246,0.2)", borderRadius: "16px 16px 0 0", padding: "16px 20px 10px", boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", zIndex: 100 }}>
               <p style={{ color: T.textSub, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 12px" }}>More Features</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                {TABS.slice(6).map(t => (
+                {TABS.slice(6).filter(t => !t.hidden).map(t => (
                   <button key={t.id} onClick={() => { setTab(t.id); setShowMoreMenu(false); }} style={{ background: tab === t.id ? GRAD.purple : "rgba(255,255,255,0.04)", border: tab === t.id ? "none" : "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "12px 8px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 7, boxShadow: tab === t.id ? "0 4px 14px rgba(0,0,0,0.25)" : "none" }}>
                     <Icon name={t.icon} size={20} color={tab === t.id ? "#fff" : T.textSub} strokeWidth={1.6} />
                     <span style={{ color: tab === t.id ? "#fff" : T.textMid, fontSize: 11, fontWeight: tab === t.id ? 700 : 400, fontFamily: "'Inter',sans-serif", letterSpacing: 0.3 }}>{t.label}</span>
@@ -10068,10 +10481,10 @@ export default function App() {
           ))}
           {/* More button */}
           <button onClick={() => setShowMoreMenu(m => !m)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "4px 10px" }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, background: showMoreMenu || TABS.slice(6).some(t => t.id === tab) ? GRAD.purple : "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.25s", boxShadow: showMoreMenu ? "0 4px 16px rgba(0,0,0,0.25)" : "none" }}>
-              <Icon name={showMoreMenu ? "chevronDown" : "plus"} size={17} color={showMoreMenu || TABS.slice(6).some(t => t.id === tab) ? "#fff" : T.textSub} strokeWidth={2} />
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: showMoreMenu || TABS.slice(6).filter(t => !t.hidden).some(t => t.id === tab) ? GRAD.purple : "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.25s", boxShadow: showMoreMenu ? "0 4px 16px rgba(0,0,0,0.25)" : "none" }}>
+              <Icon name={showMoreMenu ? "chevronDown" : "plus"} size={17} color={showMoreMenu || TABS.slice(6).filter(t => !t.hidden).some(t => t.id === tab) ? "#fff" : T.textSub} strokeWidth={2} />
             </div>
-            <span style={{ fontSize: 9, color: showMoreMenu || TABS.slice(6).some(t => t.id === tab) ? T.purple : T.textSub, fontWeight: 400, letterSpacing: 0.5 }}>More</span>
+            <span style={{ fontSize: 9, color: showMoreMenu || TABS.slice(6).filter(t => !t.hidden).some(t => t.id === tab) ? T.purple : T.textSub, fontWeight: 400, letterSpacing: 0.5 }}>More</span>
           </button>
         </div>
       </div>
