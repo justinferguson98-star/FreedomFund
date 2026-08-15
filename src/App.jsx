@@ -598,7 +598,7 @@ const S = {
     width: "100%", color: "#fff", border: "none",
     borderRadius: 999, padding: "13px 0", fontFamily: "'Inter',sans-serif",
     fontWeight: 700, fontSize: 14, cursor: "pointer", letterSpacing: 0.3,
-    background: color === T.accent ? GRAD.purple : `linear-gradient(135deg, ${color}, ${color}cc)`,
+    background: (!color || typeof color !== "string" || color === T.accent) ? GRAD.purple : `linear-gradient(135deg, ${color}, ${color}cc)`,
     boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
   }),
   ghostBtn: {
@@ -2000,8 +2000,8 @@ function GoalCreationFlow({ onComplete, onCancel }) {
           </div>
         </div>
         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: form.useLock ? 14 : 0 }}>
-            <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: form.useLock ? 14 : 0 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ color: T.text, fontSize: 13, fontWeight: 600, margin: 0 }}>Withdrawal Lock</p>
               <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Protect against impulse spending</p>
             </div>
@@ -2450,8 +2450,8 @@ function EditGoalModal({ goal, onClose, onSave, onDelete }) {
                 <p style={{ color: T.textMid, fontSize: 12, margin: 0, lineHeight: 1.6 }}>Withdrawal locks protect you from impulse decisions. Set a date lock to hold until a specific date, or a cooldown that forces a waiting period before any withdrawal clears.</p>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "13px 15px" }}>
-                <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "13px 15px" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: T.text, fontSize: 14, fontWeight: 600, margin: 0 }}>Enable withdrawal lock</p>
                   <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Protects against impulse spending</p>
                 </div>
@@ -2683,8 +2683,8 @@ function DepositModal({ goal, onClose }) {
           <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="0.00" style={{ ...S.input, paddingLeft: 28, fontSize: 17 }} />
         </div>
         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 14, marginBottom: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: autoDeposit ? 14 : 0 }}>
-            <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: autoDeposit ? 14 : 0 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ color: T.text, fontSize: 13, fontWeight: 600, margin: 0 }}>Auto-Deposit</p>
               <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Recurring transfers — no manual effort</p>
             </div>
@@ -2990,8 +2990,8 @@ function VestModal({ inv, onClose, onConfirm }) {
           <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
           <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="0.00" style={{ ...S.input, paddingLeft: 28, fontSize: 17 }} />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ color: T.text, fontSize: 13, fontWeight: 600, margin: 0 }}>Vesting Lock</p>
             <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Prevents panic-selling during dips</p>
           </div>
@@ -3764,8 +3764,8 @@ function DealsTab() {
       {selDeal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)", padding: 20 }} onClick={() => setSelDeal(null)}>
           <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: 18, padding: 24, width: "100%", maxWidth: 380, border: `1px solid ${T.borderHi}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <h3 style={{ color: T.text, fontSize: 16, fontWeight: 700, margin: 0 }}>{selDeal.store}</h3>
                 <p style={{ color: T.textSub, fontSize: 12, margin: "2px 0 0" }}>{selDeal.title}</p>
               </div>
@@ -3946,17 +3946,6 @@ const BILL_CATEGORIES = [
   { id: "other",         label: "Other",          icon: "dollarSign",  color: T.textMid},
 ];
 
-const INITIAL_BILLS = [
-  { id: 1, name: "Rent",           category: "housing",       amount: 1450, dueDay: 1,  autopay: true,  color: T.blue,   icon: "building",   notes: ""                     },
-  { id: 2, name: "Electric",       category: "utilities",     amount: 94,   dueDay: 12, autopay: false, color: T.gold,   icon: "zap",        notes: "Varies by season"      },
-  { id: 3, name: "Internet",       category: "phone",         amount: 69,   dueDay: 15, autopay: true,  color: T.accent, icon: "bell",       notes: ""                     },
-  { id: 4, name: "Car Insurance",  category: "insurance",     amount: 142,  dueDay: 8,  autopay: false, color: T.green,  icon: "shield",     notes: ""                     },
-  { id: 5, name: "Netflix",        category: "subscriptions", amount: 15,   dueDay: 22, autopay: true,  color: T.purple, icon: "repeat",     notes: ""                     },
-  { id: 6, name: "Car Payment",    category: "transport",     amount: 380,  dueDay: 3,  autopay: false, color: T.orange, icon: "send",       notes: "18 months remaining"  },
-  { id: 7, name: "Student Loan",   category: "debt",          amount: 210,  dueDay: 17, autopay: false, color: T.red,    icon: "wallet",     notes: ""                     },
-  { id: 8, name: "Phone Bill",     category: "phone",         amount: 85,   dueDay: 20, autopay: true,  color: T.accent, icon: "bell",       notes: ""                     },
-];
-
 function AddEditBillModal({ bill, onClose, onSave }) {
   const isNew = !bill;
   const [name,     setName]     = useState(bill?.name     || "");
@@ -4040,8 +4029,8 @@ function AddEditBillModal({ bill, onClose, onSave }) {
             <p style={{ color: T.textSub, fontSize: 11, margin: "6px 0 0" }}>We will remind you {reminder} day{reminder > 1 ? "s" : ""} before the {dueDay}{parseInt(dueDay) === 1 ? "st" : parseInt(dueDay) === 2 ? "nd" : parseInt(dueDay) === 3 ? "rd" : "th"} of each month.</p>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "13px 15px" }}>
-            <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "13px 15px" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ color: T.text, fontSize: 13, fontWeight: 600, margin: 0 }}>Autopay enabled</p>
               <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Bill is paid automatically by your bank</p>
             </div>
@@ -4836,8 +4825,8 @@ function DailyCheckIn({ profile, goals, onClose, onLog }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center", backdropFilter: "blur(10px)" }}>
       <div style={{ background: T.surface, borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 420, border: "1px solid rgba(255,255,255,0.09)", borderBottom: "none", padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ color: T.textSub, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", margin: 0 }}>Daily Check-In</p>
             <h3 style={{ color: T.text, fontSize: 20, fontWeight: 800, margin: "3px 0 0" }}>What did you spend today?</h3>
           </div>
@@ -5655,8 +5644,8 @@ function NotificationCenter({ notifications, onClose, onRead, onReadAll, onNavig
 
         {/* Header */}
         <div style={{ padding: "20px 20px 0" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <h3 style={{ color: T.text, fontSize: 18, fontWeight: 800, margin: 0 }}>Notifications</h3>
               {unreadCount > 0 && <p style={{ color: T.textSub, fontSize: 12, margin: "3px 0 0" }}>{unreadCount} unread</p>}
             </div>
@@ -5730,6 +5719,7 @@ function NotificationCenter({ notifications, onClose, onRead, onReadAll, onNavig
 }
 
 function NotificationSettings({ onClose }) {
+  const [dnd, setDnd] = useState(true);
   const [settings, setSettings] = useState({
     bill_due:         { enabled: true,  days: 3,    label: "Bill due reminders",         desc: "Get reminded before bills are due" },
     goal_milestone:   { enabled: true,  days: null, label: "Goal milestones",             desc: "Celebrate progress at 25%, 50%, 75%, 100%" },
@@ -5806,13 +5796,14 @@ function NotificationSettings({ onClose }) {
           <div style={{ marginBottom: 24 }}>
             <p style={{ color: T.textSub, fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 10px" }}>Quiet Hours</p>
             <div style={{ ...S.card, padding: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: dnd ? 12 : 0 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: T.text, fontSize: 13, fontWeight: 600, margin: 0 }}>Do Not Disturb</p>
                   <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>No notifications during these hours</p>
                 </div>
-                <Toggle value={true} onChange={() => {}} />
+                <Toggle value={dnd} onChange={setDnd} />
               </div>
+              {dnd && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <div>
                   <label style={{ ...S.label, fontSize: 10 }}>From</label>
@@ -5827,6 +5818,7 @@ function NotificationSettings({ onClose }) {
                   </select>
                 </div>
               </div>
+              )}
             </div>
           </div>
 
@@ -5848,7 +5840,7 @@ const CAL_EVENT_TYPES = {
   tax:          { color: "#FF5A6E", icon: "barChart",   label: "Tax Due"         },
 };
 
-function FinancialCalendar({ goals, bills = INITIAL_BILLS, checkInLog = [], profile }) {
+function FinancialCalendar({ goals, bills = [], checkInLog = [], profile }) {
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [viewYear,  setViewYear]  = useState(today.getFullYear());
@@ -6535,7 +6527,7 @@ function AnnualReview({ goals, profile, checkInLog, streak }) {
 }
 
 // ── Smart Savings Recommendations ────────────────────────────────────────────
-function generateRecommendations(goals, profile, bills = INITIAL_BILLS) {
+function generateRecommendations(goals, profile, bills = []) {
   const mo = profile?.monthlyIncome || 4200;
   const recs = [];
 
@@ -6882,6 +6874,7 @@ const SHARED_BILLS_MOCK = [
 ];
 
 function CoupleMode({ profile, goals, myGoals }) {
+  const [coupleNote, setCoupleNote] = useState("");
   const [activeSection, setActiveSection] = useState("overview");
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [partnerConnected, setPartnerConnected] = useState(true); // demo: connected
@@ -7083,8 +7076,8 @@ function CoupleMode({ profile, goals, myGoals }) {
 
           {/* Split setting */}
           <div style={S.card}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <SectionLabel>Bill Split Method</SectionLabel>
                 <p style={{ color: T.textSub, fontSize: 11, margin: "-6px 0 0" }}>How shared expenses are divided</p>
               </div>
@@ -7158,7 +7151,7 @@ function CoupleMode({ profile, goals, myGoals }) {
                     ))}
                   </div>
 
-                  <button onClick={() => alert("Add contribution to " + goal.name + " — connect your bank to enable real deposits.")} style={{ ...S.primaryBtn(goal.color), marginTop: 12, fontSize: 13, padding: "10px 0" }}>
+                  <button onClick={() => setCoupleNote("Log the deposit on " + goal.name + " in the Goals tab so the progress bar updates for both of you.")} style={{ ...S.primaryBtn(goal.color), marginTop: 12, fontSize: 13, padding: "10px 0" }}>
                     Add My Contribution
                   </button>
                 </div>
@@ -7166,7 +7159,7 @@ function CoupleMode({ profile, goals, myGoals }) {
             );
           })}
 
-          <button onClick={() => alert("Create Shared Goal — coming soon. Will let both partners set a combined target and auto-split contributions.")} style={{ background: "rgba(124,92,252,0.08)", border: "1px dashed rgba(124,92,252,0.3)", borderRadius: 14, padding: "16px 0", cursor: "pointer", color: T.purple, fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <button onClick={() => setCoupleNote("Create Shared Goal is not built yet. This tab is hidden from the menu until it is.")} style={{ background: "rgba(124,92,252,0.08)", border: "1px dashed rgba(124,92,252,0.3)", borderRadius: 14, padding: "16px 0", cursor: "pointer", color: T.purple, fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <Icon name="plus" size={16} color={T.purple} />
             Create Shared Goal
           </button>
@@ -7227,7 +7220,7 @@ function CoupleMode({ profile, goals, myGoals }) {
             );
           })}
 
-          <button onClick={() => alert("Add Shared Bill — coming soon. Will let you add any joint expense and split it by your chosen method.")} style={{ background: "rgba(255,107,53,0.08)", border: "1px dashed rgba(255,107,53,0.3)", borderRadius: 14, padding: "16px 0", cursor: "pointer", color: T.orange, fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <button onClick={() => setCoupleNote("Add Shared Bill is not built yet. This tab is hidden from the menu until it is.")} style={{ background: "rgba(255,107,53,0.08)", border: "1px dashed rgba(255,107,53,0.3)", borderRadius: 14, padding: "16px 0", cursor: "pointer", color: T.orange, fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <Icon name="plus" size={16} color={T.orange} />
             Add Shared Bill
           </button>
@@ -9350,34 +9343,71 @@ const PARENT_MISSIONS = [
 function PaycheckSim() {
   const [wage, setWage] = useState(15);
   const [hrs,  setHrs]  = useState(20);
-  const gross = wage * hrs * 4.33;
+
+  const baseHrs = Math.min(hrs, 40);
+  const otHrs   = Math.max(0, hrs - 40);
+  const weeklyBase = baseHrs * wage;
+  const weeklyOt   = otHrs * wage * 1.5;
+  const gross = (weeklyBase + weeklyOt) * 4.33;
+  const otMonthly = weeklyOt * 4.33;
+
   const fed = gross * 0.10, state = gross * 0.04, ss = gross * 0.062, med = gross * 0.0145;
   const net = gross - fed - state - ss - med;
-  const Row = ({ label, val, neg, strong, color }) => (
-    <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: strong ? "none" : "1px solid rgba(255,255,255,0.06)" }}>
-      <span style={{ color: strong ? T.text : T.textSub, fontSize: strong ? 15 : 13, fontWeight: strong ? 800 : 500 }}>{label}</span>
-      <span style={{ color: color || (neg ? T.red : T.textMid), fontSize: strong ? 17 : 13, fontWeight: strong ? 900 : 600 }}>{neg ? "-" : ""}${val.toFixed(2)}</span>
+  const takeHomePct = gross > 0 ? Math.round((net / gross) * 100) : 0;
+
+  const Row = ({ label, val, neg, strong, color, note }) => (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, padding: "7px 0", borderBottom: strong ? "none" : "1px solid rgba(255,255,255,0.06)" }}>
+      <span style={{ color: strong ? T.text : T.textSub, fontSize: strong ? 15 : 13, fontWeight: strong ? 800 : 500, minWidth: 0 }}>
+        {label}{note && <span style={{ color: T.textSub, fontSize: 10, display: "block", fontWeight: 500 }}>{note}</span>}
+      </span>
+      <span style={{ color: color || (neg ? T.red : T.textMid), fontSize: strong ? 17 : 13, fontWeight: strong ? 900 : 600, flexShrink: 0 }}>{neg ? "-" : ""}${val.toFixed(2)}</span>
     </div>
   );
+
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        <div style={{ flex: 1 }}>
+      <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 130px", minWidth: 0 }}>
           <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Hourly wage: ${wage}</label>
-          <input type="range" min="8" max="30" value={wage} onChange={e => setWage(Number(e.target.value))} style={{ width: "100%", accentColor: T.purple }} />
+          <input type="range" min="8" max="100" step="1" value={wage} onChange={e => setWage(Number(e.target.value))} style={{ width: "100%", accentColor: T.purple }} />
         </div>
-        <div style={{ flex: 1 }}>
-          <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Hours per week: {hrs}</label>
-          <input type="range" min="5" max="40" value={hrs} onChange={e => setHrs(Number(e.target.value))} style={{ width: "100%", accentColor: T.purple }} />
+        <div style={{ flex: "1 1 130px", minWidth: 0 }}>
+          <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Hours per week: {hrs}{otHrs > 0 ? ` (${otHrs} OT)` : ""}</label>
+          <input type="range" min="5" max="80" step="1" value={hrs} onChange={e => setHrs(Number(e.target.value))} style={{ width: "100%", accentColor: otHrs > 0 ? T.gold : T.purple }} />
         </div>
       </div>
-      <Row label="Gross pay (monthly)" val={gross} />
+
+      {otHrs > 0 && (
+        <div style={{ background: "rgba(245,166,35,0.09)", border: "1px solid rgba(245,166,35,0.3)", borderRadius: 12, padding: "10px 13px", marginBottom: 12 }}>
+          <p style={{ color: T.gold, fontSize: 12, fontWeight: 700, margin: "0 0 3px" }}>Overtime kicked in</p>
+          <p style={{ color: T.textMid, fontSize: 12, margin: 0, lineHeight: 1.55 }}>
+            Hours past 40 pay time and a half — ${(wage * 1.5).toFixed(2)} an hour. That is ${otMonthly.toFixed(0)} extra a month before taxes.
+          </p>
+        </div>
+      )}
+
+      <Row label="Base pay (monthly)" val={weeklyBase * 4.33} note={`${baseHrs} hrs a week at $${wage}`} />
+      {otHrs > 0 && <Row label="Overtime pay (monthly)" val={otMonthly} color={T.gold} note={`${otHrs} hrs a week at $${(wage * 1.5).toFixed(2)}`} />}
+      <Row label="Gross pay (monthly)" val={gross} color={T.text} />
       <Row label="Federal tax (10%)" val={fed} neg />
       <Row label="State tax (4%)" val={state} neg />
       <Row label="Social Security (6.2%)" val={ss} neg />
       <Row label="Medicare (1.45%)" val={med} neg />
       <Row label="Your NET pay" val={net} strong color={T.green} />
-      <p style={{ color: T.textSub, fontSize: 11, margin: "10px 0 0", lineHeight: 1.5 }}>About {Math.round((1 - net / gross) * 100)}% never reaches your account. Budget with the green number.</p>
+
+      <div style={{ marginTop: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+          <span style={{ color: T.textSub, fontSize: 11, fontWeight: 600 }}>What you actually keep</span>
+          <span style={{ color: T.green, fontSize: 11, fontWeight: 800 }}>{takeHomePct}%</span>
+        </div>
+        <div style={{ height: 10, borderRadius: 99, overflow: "hidden", display: "flex", background: "rgba(255,255,255,0.06)" }}>
+          <div style={{ width: `${takeHomePct}%`, background: GRAD.green, transition: "width 0.3s" }} />
+          <div style={{ width: `${100 - takeHomePct}%`, background: "rgba(255,90,110,0.55)", transition: "width 0.3s" }} />
+        </div>
+        <p style={{ color: T.textSub, fontSize: 11, margin: "8px 0 0", lineHeight: 1.5 }}>
+          Green is yours. Red is taxes — about {100 - takeHomePct}% never reaches your account. Always budget with the green number.
+        </p>
+      </div>
     </div>
   );
 }
@@ -9548,6 +9578,10 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
   const [chDone,      setChDone]      = useState(initialProgress?.challenges || []);
   const [showTipBody, setShowTipBody] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
+  const [addingMission, setAddingMission] = useState(false);
+  const [newMission, setNewMission] = useState("");
+  const [newReward, setNewReward] = useState("");
+  const [extraMissions, setExtraMissions] = useState([]);
   const [revDays, setRevDays] = useState(initialProgress?.reviews || []);
   const [revIdx, setRevIdx] = useState(0);
   const [revPick, setRevPick] = useState(null);
@@ -9792,7 +9826,7 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
       <div style={S.card}>
         <SectionLabel>Missions You Set</SectionLabel>
         <p style={{ color: T.textSub, fontSize: 12, margin: "-6px 0 14px", lineHeight: 1.5 }}>Reward your child when they hit these milestones. Tie real-world rewards to financial behavior.</p>
-        {PARENT_MISSIONS.map(m => (
+        {[...PARENT_MISSIONS, ...extraMissions].map(m => (
           <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
             <div style={{ width: 28, height: 28, borderRadius: 8, background: m.done ? "rgba(0,210,160,0.15)" : "rgba(255,255,255,0.08)", border: m.done ? "1px solid rgba(0,210,160,0.3)" : "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               {m.done ? <Icon name="check" size={14} color={T.green} strokeWidth={2.5} /> : <div style={{ width: 8, height: 8, borderRadius: "50%", background: "rgba(255,255,255,0.2)" }} />}
@@ -9804,7 +9838,18 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
             {m.done && <span style={{ background: "rgba(0,210,160,0.1)", color: T.green, border: "1px solid rgba(0,210,160,0.25)", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 5, fontFamily: "'Inter',sans-serif" }}>Done</span>}
           </div>
         ))}
-        <button style={{ ...S.primaryBtn(), marginTop: 14 }} onClick={() => {}}>Add a Mission</button>
+        {addingMission ? (
+          <div style={{ marginTop: 14 }}>
+            <input value={newMission} onChange={e => setNewMission(e.target.value)} placeholder="e.g. Save $20 this week" style={{ ...S.input, marginBottom: 8 }} />
+            <input value={newReward} onChange={e => setNewReward(e.target.value)} placeholder="Reward (e.g. Movie night)" style={{ ...S.input, marginBottom: 10 }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => { setAddingMission(false); setNewMission(""); setNewReward(""); }} style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 999, padding: "12px 0", cursor: "pointer", color: T.textMid, fontWeight: 600, fontSize: 13, fontFamily: "'Inter',sans-serif" }}>Cancel</button>
+              <button onClick={() => { if (!newMission.trim()) return; setExtraMissions(p => [...p, { id: Date.now(), title: newMission.trim(), reward: newReward.trim() || "Your choice", done: false }]); setNewMission(""); setNewReward(""); setAddingMission(false); }} style={{ flex: 1, ...S.primaryBtn() }}>Add</button>
+            </div>
+          </div>
+        ) : (
+          <button style={{ ...S.primaryBtn(), marginTop: 14 }} onClick={() => setAddingMission(true)}>Add a Mission</button>
+        )}
       </div>
 
       <div style={S.card}>
@@ -9820,7 +9865,9 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
             <p style={{ color: T.purple, fontWeight: 800, fontSize: 18, margin: 0 }}>${Math.min(savings, 50)}</p>
           </div>
         </div>
-        <button style={{ ...S.primaryBtn(T.green) }} onClick={() => {}}>Transfer Match to Their Goal</button>
+        <p style={{ color: T.textSub, fontSize: 12, margin: "12px 0 0", lineHeight: 1.6, textAlign: "center" }}>
+          Move this match into their goal from your own account, then log it as a deposit on the goal so the progress bar reflects it.
+        </p>
       </div>
     </div>
   );
@@ -10103,8 +10150,8 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
 
       {/* Savings goal tracker */}
       <div style={S.card}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <SectionLabel>My Savings Goal</SectionLabel>
             <p style={{ color: T.text, fontWeight: 700, fontSize: 16, margin: "-6px 0 0" }}>{goalName}</p>
           </div>
@@ -10423,17 +10470,6 @@ const TIPS = [
   "Paid-off beats financed. Every single time.",
 ];
 
-const MONTHLY = {
-  income: 4200, spent: 2640, saved: 860,
-  cats: [
-    { name: "Rent", amount: 1200, color: "#475569" },
-    { name: "Food", amount: 480, color: T.gold },
-    { name: "Transport", amount: 310, color: T.green },
-    { name: "Goals", amount: 860, color: T.accent },
-    { name: "Other", amount: 390, color: T.purple },
-  ],
-};
-
 export default function App() {
   const [authUser,  setAuthUser]  = useState(null);
   const [authReady, setAuthReady] = useState(false);
@@ -10691,7 +10727,7 @@ export default function App() {
 
 
   const allNotifications = useMemo(
-    () => generateNotifications(goals, INITIAL_BILLS, streak, checkInLog, profile),
+    () => generateNotifications(goals, dbBills, streak, checkInLog, profile),
     [goals, streak, checkInLog, profile]
   );
   const notifications = allNotifications.map(n => ({ ...n, read: n.read || readNotifs.includes(n.id) }));
@@ -10700,8 +10736,20 @@ export default function App() {
   const totalSaved = goals.reduce((a, g) => a + g.saved, 0);
   const totalTarget = goals.reduce((a, g) => a + g.target, 0);
   const overallPct = Math.round((totalSaved / totalTarget) * 100);
-  const free = MONTHLY.income - MONTHLY.spent - MONTHLY.saved;
-  const monthlyIncome = profile ? (profile.payFreq === "weekly" ? Math.round(profile.income * 52 / 12) : profile.payFreq === "biweekly" ? Math.round(profile.income * 26 / 12) : profile.payFreq === "yearly" ? Math.round(profile.income / 12) : Math.round(profile.income)) : MONTHLY.income;
+  const monthlyIncome = profile?.monthlyIncome
+    ? Math.round(profile.monthlyIncome)
+    : profile
+      ? (profile.payFreq === "weekly" ? Math.round(profile.income * 52 / 12)
+        : profile.payFreq === "biweekly" ? Math.round(profile.income * 26 / 12)
+        : profile.payFreq === "yearly" ? Math.round(profile.income / 12)
+        : Math.round(profile.income || 0))
+      : 0;
+  // Real monthly figures derived from the profile the user entered
+  const realSpent = Math.round((profile?.totalFixed || 0) + (profile?.totalVariable || 0));
+  const realSaved = Math.max(0, monthlyIncome - realSpent);
+  const free = realSaved;
+  const savedPct = monthlyIncome > 0 ? Math.round((realSaved / monthlyIncome) * 100) : 0;
+  const spentPct = monthlyIncome > 0 ? Math.round((realSpent / monthlyIncome) * 100) : 0;
 
   const TABS = [
     { id: "home",      icon: "home",       label: "Home"      },
@@ -10718,7 +10766,7 @@ export default function App() {
     { id: "school",    icon: "award",      label: "School"    },
     { id: "learn",     icon: "award",      label: "Learn", hidden: true     },
     { id: "credit",    icon: "shield",     label: "Credit"    },
-    { id: "couple",    icon: "users",      label: "Couple"    },
+    { id: "couple",    icon: "users",      label: "Couple", hidden: true    },
     { id: "insights",  icon: "zap",        label: "Insights"  },
     { id: "review",    icon: "award",      label: "Year", hidden: true      },
     { id: "health",    icon: "shield",     label: "Health", hidden: true    },
@@ -10851,10 +10899,10 @@ export default function App() {
             <div style={S.card}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                 <div>
-                  <p style={{ color: T.textMid, fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", margin: 0 }}>Weekly Saved</p>
-                  <p style={{ color: T.orange, fontWeight: 900, fontSize: 17, margin: "2px 0 0" }}>${MONTHLY.saved.toLocaleString()}</p>
+                  <p style={{ color: T.textMid, fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", margin: 0 }}>Monthly Left Over</p>
+                  <p style={{ color: T.orange, fontWeight: 900, fontSize: 17, margin: "2px 0 0" }}>${realSaved.toLocaleString()}</p>
                 </div>
-                <span style={{ background: T.accent, color: "#fff", fontSize: 9, fontWeight: 700, padding: "3px 9px", borderRadius: 99, fontFamily: "'Inter',sans-serif" }}>+12%</span>
+                {monthlyIncome > 0 && <span style={{ background: T.accent, color: "#fff", fontSize: 9, fontWeight: 700, padding: "3px 9px", borderRadius: 99, fontFamily: "'Inter',sans-serif" }}>{savedPct}%</span>}
               </div>
               <svg width="100%" height={44} viewBox="0 0 120 44" preserveAspectRatio="none">
                 <defs>
@@ -10897,18 +10945,18 @@ export default function App() {
                 <p style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: 0 }}>Budget</p>
                 <span style={{ background: T.accent, color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 99, fontFamily: "'Inter',sans-serif" }}>Live</span>
               </div>
-              <GaugeMeter pct={Math.min(100, Math.round((MONTHLY.saved / monthlyIncome) * 100 * 5))} />
+              <GaugeMeter pct={Math.min(100, savedPct * 5)} />
               <div style={{ marginTop: 8 }}>
-                <SliderBar pct={Math.round((MONTHLY.saved/monthlyIncome)*100)} color={T.orange} label="Saved" value={`${Math.round((MONTHLY.saved/monthlyIncome)*100)}%`} />
-                <SliderBar pct={Math.round((MONTHLY.spent/monthlyIncome)*100)} color={T.purple} label="Spent" value={`${Math.round((MONTHLY.spent/monthlyIncome)*100)}%`} />
+                <SliderBar pct={Math.min(100, savedPct)} color={T.orange} label="Saved" value={`${savedPct}%`} />
+                <SliderBar pct={Math.min(100, spentPct)} color={T.purple} label="Spent" value={`${spentPct}%`} />
               </div>
             </div>
           </div>
 
           {/* Row 3: Multi-line trend chart full width */}
           <div style={S.card}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: 0 }}>Monthly Trends</p>
                 <p style={{ color: T.textSub, fontSize: 10, margin: "2px 0 0" }}>Income vs Spending vs Saved</p>
               </div>
@@ -10966,23 +11014,38 @@ export default function App() {
             </button>
             <button onClick={() => setTab("health")} style={{ ...S.card, cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <p style={{ color: T.textMid, fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", margin: 0 }}>Savings Rate</p>
-              <DonutRing pct={Math.round((MONTHLY.saved/monthlyIncome)*100)} color={T.green} size={58} strokeWidth={6} />
+              <DonutRing pct={savedPct} color={T.green} size={58} strokeWidth={6} />
               <p style={{ color: T.textSub, fontSize: 10, margin: 0 }}>Target: 20%+</p>
             </button>
           </div>
 
-          {/* Row 5: Budget parameter sliders */}
-          <div style={S.card}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <p style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: 0 }}>Budget Parameters</p>
-              <Toggle value={true} onChange={() => {}} />
-            </div>
-            <SliderBar pct={29} color={T.blue}   label="Housing"     value="29%" />
-            <SliderBar pct={11} color={T.orange}  label="Food"        value="11%" />
-            <SliderBar pct={7}  color={T.teal}    label="Transport"   value="7%"  />
-            <SliderBar pct={20} color={T.purple}  label="Goals"       value="20%" />
-            <SliderBar pct={Math.min(100, Math.round(free/30))} color={T.green} label="Daily limit" value={`$${Math.round(free/30)}`} />
-          </div>
+          {/* Row 5: Where your money goes — real bill data */}
+          {(() => {
+            const inc = profile?.monthlyIncome || monthlyIncome || 0;
+            const sumCat = (id) => dbBills.filter(b => b.category === id).reduce((s, b) => s + (Number(b.amount) || 0), 0);
+            const pctOf = (v) => inc > 0 ? Math.min(100, Math.round((v / inc) * 100)) : 0;
+            const rows = [
+              { label: "Housing",   color: T.blue,   amt: sumCat("housing") },
+              { label: "Utilities", color: T.gold,   amt: sumCat("utilities") },
+              { label: "Transport", color: T.teal,   amt: sumCat("transport") },
+              { label: "Debt",      color: T.red,    amt: sumCat("debt") },
+            ].filter(r => r.amt > 0);
+            const hasData = inc > 0 && rows.length > 0;
+            return (
+              <div style={S.card}>
+                <p style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: "0 0 4px" }}>Where Your Money Goes</p>
+                <p style={{ color: T.textSub, fontSize: 11, margin: "0 0 14px", lineHeight: 1.5 }}>
+                  {hasData ? "Share of your monthly income, from the bills you have entered." : "Add bills with categories to see your real breakdown here."}
+                </p>
+                {hasData && rows.map(r => (
+                  <SliderBar key={r.label} pct={pctOf(r.amt)} color={r.color} label={r.label} value={`${pctOf(r.amt)}%`} />
+                ))}
+                {hasData && free > 0 && (
+                  <SliderBar pct={Math.min(100, Math.round((free / inc) * 100))} color={T.green} label="Left to spend or save" value={`$${Math.round(free).toLocaleString()}`} />
+                )}
+              </div>
+            );
+          })()}
 
           {/* Quick actions */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -11120,7 +11183,7 @@ export default function App() {
       {tab === "couple"    && <div style={{ paddingTop: 16 }}><CoupleMode profile={profile} goals={goals} /></div>}
       {tab === "insights"  && (
         <div style={{ paddingTop: 16 }}>
-          <SmartRecommendations goals={goals} profile={profile} bills={INITIAL_BILLS} />
+          <SmartRecommendations goals={goals} profile={profile} bills={dbBills} />
           <div style={{ padding: "0 16px" }}>
             <div style={S.card}>
               <SectionLabel>More Reports</SectionLabel>
@@ -11146,7 +11209,7 @@ export default function App() {
         </div>
       )}
       {tab === "review"    && <div style={{ paddingTop: 16 }}><AnnualReview goals={goals} profile={profile} checkInLog={checkInLog} streak={streak} /></div>}
-      {tab === "calendar" && <div style={{ paddingTop: 16 }}><FinancialCalendar goals={goals} bills={INITIAL_BILLS} checkInLog={checkInLog} profile={profile} /></div>}
+      {tab === "calendar" && <div style={{ paddingTop: 16 }}><FinancialCalendar goals={goals} bills={dbBills} checkInLog={checkInLog} profile={profile} /></div>}
       {tab === "bills" && <div style={{ paddingTop: 16 }}><BillsTab profileSubs={profile?.subscriptionsList || []} initialBills={dbBills} onPersist={persistBill} onDelete={removeBillDb} /></div>}
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
