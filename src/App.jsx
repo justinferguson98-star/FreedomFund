@@ -164,6 +164,7 @@ function AuthScreen({ onAuth }) {
   const [password,    setPassword]    = useState("");
   const [name,        setName]        = useState("");
   const [showPass,    setShowPass]    = useState(false);
+  const [showAbout,   setShowAbout]   = useState(false);
   const [loading,     setLoading]     = useState(false);
   const [error,       setError]       = useState("");
   const [success,     setSuccess]     = useState("");
@@ -282,6 +283,8 @@ function AuthScreen({ onAuth }) {
   );
 
   // ── Welcome screen (first impression) ────────────────────────────────────
+  if (showAbout) return <AboutModal onClose={() => setShowAbout(false)} />;
+
   if (mode === "welcome") {
     const slides = [
       { icon: "target",  color: T.purple, title: "Save with purpose",      body: "Set goals that matter. Watch every dollar move you closer to them." },
@@ -324,6 +327,9 @@ function AuthScreen({ onAuth }) {
             </button>
             <button onClick={() => setMode("login")} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 999, padding: "16px 0", cursor: "pointer", color: T.text, fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 15 }}>
               I already have an account
+            </button>
+            <button onClick={() => setShowAbout(true)} style={{ background: "none", border: "none", cursor: "pointer", color: T.textMid, fontSize: 13, fontFamily: "'Inter',sans-serif", fontWeight: 600, padding: "14px 0 0", width: "100%", textAlign: "center" }}>
+              Why we built this
             </button>
             <p style={{ color: T.textSub, fontSize: 11, textAlign: "center", margin: "6px 0 0" }}>Free forever &middot; No credit card required</p>
           </div>
@@ -3481,7 +3487,10 @@ function WeeklySpendingChart() {
 }
 
 // ── Profile Tab ───────────────────────────────────────────────────────────────
-function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = null, onSaveProfile = () => {} }) {
+function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = null, onSaveProfile = () => {}, onDeleteAccount = null }) {
+  const [legal, setLegal] = useState(null);
+  const [delStep, setDelStep] = useState(0);
+  const [delBusy, setDelBusy] = useState(false);
   const totalSaved = goals.reduce((a, g) => a + g.saved, 0);
   const totalTarget = goals.reduce((a, g) => a + g.target, 0);
   const overallPct = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
@@ -3651,6 +3660,49 @@ function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = nu
         <input value={editVar} onChange={e => setEditVar(e.target.value)} type="number" style={{ ...S.input, marginBottom: 16 }} />
         <button onClick={saveDetails} style={{ ...S.primaryBtn(profSaved ? T.green : undefined) }}>{profSaved ? "Saved" : "Save Changes"}</button>
       </div>
+
+      {/* Privacy & Security */}
+      <div style={S.card}>
+        <SectionLabel>Privacy and Security</SectionLabel>
+        <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.5 }}>We do not sell your data, show ads, or connect to your bank. Your numbers stay yours.</p>
+        {[
+          { k: "about",   icon: "target", color: T.purple, t: "Our Purpose", s: "Why Freedom Funds exists" },
+          { k: "privacy", icon: "lock",   color: T.green,  t: "Privacy Policy", s: "What we collect and what we never do" },
+          { k: "terms",   icon: "book",   color: T.blue,   t: "Terms of Service", s: "What this app is, and what it is not" },
+        ].map((r, i) => (
+          <button key={r.k} onClick={() => setLegal(r.k)} style={{ width: "100%", background: "none", border: "none", borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.06)", padding: "12px 2px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", fontFamily: "'Inter',sans-serif" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 11, background: `${r.color}18`, border: `1px solid ${r.color}3d`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Icon name={r.icon} size={17} color={r.color} strokeWidth={1.8} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>{r.t}</p>
+              <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>{r.s}</p>
+            </div>
+            <Icon name="chevronLeft" size={14} color={T.textSub} style={{ transform: "rotate(180deg)" }} />
+          </button>
+        ))}
+
+        {onDeleteAccount && (
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14, marginTop: 8 }}>
+            {delStep === 0 && (
+              <button onClick={() => setDelStep(1)} style={{ width: "100%", background: "none", border: "1px solid rgba(255,90,110,0.25)", borderRadius: 999, padding: "11px 0", cursor: "pointer", color: T.red, fontWeight: 600, fontSize: 13, fontFamily: "'Inter',sans-serif" }}>Delete My Data</button>
+            )}
+            {delStep === 1 && (
+              <div style={{ background: "rgba(255,90,110,0.07)", border: "1px solid rgba(255,90,110,0.25)", borderRadius: 14, padding: 14 }}>
+                <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: "0 0 6px" }}>Delete everything?</p>
+                <p style={{ color: T.textMid, fontSize: 12, margin: "0 0 12px", lineHeight: 1.6 }}>This permanently erases your profile, goals, bills, net worth, and school progress. It cannot be undone.</p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => setDelStep(0)} style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 999, padding: "11px 0", cursor: "pointer", color: T.textMid, fontWeight: 600, fontSize: 13, fontFamily: "'Inter',sans-serif" }}>Keep My Data</button>
+                  <button disabled={delBusy} onClick={async () => { setDelBusy(true); await onDeleteAccount(); }} style={{ flex: 1, background: T.red, border: "none", borderRadius: 999, padding: "11px 0", cursor: "pointer", color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Inter',sans-serif", opacity: delBusy ? 0.6 : 1 }}>{delBusy ? "Deleting..." : "Yes, Delete"}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {legal === "about" && <AboutModal onClose={() => setLegal(null)} />}
+      {(legal === "privacy" || legal === "terms") && <LegalModal kind={legal} onClose={() => setLegal(null)} />}
 
       {onSignOut && (
         <button onClick={async () => { await sb.signOut(); onSignOut(); }} style={{ background: "rgba(255,90,110,0.06)", border: "1px solid rgba(255,90,110,0.18)", borderRadius: 12, padding: "13px 0", cursor: "pointer", color: T.red, fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 }}>
@@ -4235,6 +4287,242 @@ function BenchmarkCard({ profile, assets = [], liabs = [] }) {
       <p style={{ color: T.textSub, fontSize: 10, margin: "12px 0 0", lineHeight: 1.5, textAlign: "center" }}>
         Compared with published national averages, not other users. Your numbers never leave your account.
       </p>
+    </div>
+  );
+}
+
+
+// ── Legal / trust content ─────────────────────────────────────────────────────
+const LEGAL_TEXT = {
+  privacy: {
+    title: "Privacy Policy",
+    updated: "Last updated July 2026",
+    sections: [
+      { h: "What we collect", p: "Only what you type in: your name, email, the income and expense figures you enter, your goals, bills, assets, debts, and your School Mode progress. We do not collect your location, your contacts, or your browsing activity." },
+      { h: "What we do NOT do", p: "We do not sell your data. We do not share it with advertisers. We do not show ads. We do not connect to your bank accounts, and we never ask for bank logins, card numbers, or your Social Security number." },
+      { h: "Where it lives", p: "Your data is stored with Supabase, our database provider, and protected by row-level security rules. Those rules mean your records can only be read by your own signed-in account." },
+      { h: "Classrooms", p: "If you join a class with a teacher code, that teacher can see your first name, your lesson progress, and your XP. Teachers cannot see your income, goals, bills, or any financial figures. Ever." },
+      { h: "Your control", p: "You can edit or delete any entry at any time. You can erase everything from the Delete My Data button in your profile. Deleted data cannot be recovered." },
+      { h: "Children", p: "School Mode is built for classroom use. We ask students for a first name only. Teachers and schools are responsible for obtaining any parental consent their district requires." },
+      { h: "Contact", p: "Questions about your data can be sent to the address listed on our site. We aim to respond within a few business days." },
+    ],
+  },
+  terms: {
+    title: "Terms of Service",
+    updated: "Last updated July 2026",
+    sections: [
+      { h: "What this app is", p: "Freedom Funds is a budgeting and financial education tool. It helps you organize your own numbers and learn money concepts." },
+      { h: "What this app is not", p: "We are not a bank, a broker, a tax preparer, or a registered investment advisor. Nothing in this app is financial, tax, or legal advice. Calculators and projections are estimates based on the numbers you enter, and real results will differ." },
+      { h: "Your decisions are yours", p: "You are responsible for your own financial choices. For decisions with real consequences, please consult a licensed professional who can review your full situation." },
+      { h: "Your account", p: "Keep your password private. You are responsible for activity under your account. Do not share an account with anyone else." },
+      { h: "Acceptable use", p: "Do not attempt to access other users data, disrupt the service, or use the app for anything unlawful. Teachers may remove students from a class at any time." },
+      { h: "Availability", p: "The service is provided as is. We may update, pause, or change features. We do our best to protect your data but cannot guarantee uninterrupted service." },
+      { h: "Changes", p: "If these terms change materially, we will note it here with a new date. Continuing to use the app means you accept the current terms." },
+    ],
+  },
+};
+
+function LegalModal({ kind, onClose }) {
+  const doc = LEGAL_TEXT[kind];
+  if (!doc) return null;
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)", zIndex: 120, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.card, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, width: "100%", maxWidth: 380, maxHeight: "82vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "20px 20px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <p style={{ color: T.text, fontWeight: 900, fontSize: 18, margin: 0, letterSpacing: -0.3 }}>{doc.title}</p>
+          <p style={{ color: T.textSub, fontSize: 11, margin: "4px 0 0" }}>{doc.updated}</p>
+        </div>
+        <div style={{ padding: "4px 20px", overflowY: "auto", flex: 1 }}>
+          {doc.sections.map(s => (
+            <div key={s.h} style={{ padding: "14px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+              <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: "0 0 5px" }}>{s.h}</p>
+              <p style={{ color: T.textMid, fontSize: 13, margin: 0, lineHeight: 1.65 }}>{s.p}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{ padding: 16, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+          <button onClick={onClose} style={S.primaryBtn()}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ── Our purpose ───────────────────────────────────────────────────────────────
+const ABOUT_STATS = [
+  { n: "4 in 10", l: "US adults could not cover a surprise $1,000 expense from savings" },
+  { n: "~5%",     l: "Average share of income Americans save each month" },
+  { n: "$1T+",    l: "Total credit card debt carried by US households" },
+  { n: "~1 in 2", l: "States that guarantee a personal finance course before graduation" },
+];
+
+const ABOUT_PRINCIPLES = [
+  { icon: "target", color: "#9B6BFF", h: "Freedom is the metric, not budgets",
+    p: "Most apps grade you on last month. We measure the distance to the day work becomes optional. Every dollar saved and every debt cleared shortens that distance, and we show you by how much." },
+  { icon: "zap", color: "#00D2A0", h: "Clarity beats complexity",
+    p: "Financial advice is often written to sound impressive rather than to be understood. We use plain words, real numbers, and no jargon. If a screen does not help you decide something, it does not belong in the app." },
+  { icon: "book", color: "#4FACFE", h: "Teach, do not just track",
+    p: "Tracking without understanding produces guilt. Understanding produces change. Every tool in this app is paired with the reasoning behind it, so you learn the principle and not just the number." },
+  { icon: "shield", color: "#F5A623", h: "Honesty over engagement",
+    p: "We do not manufacture urgency, invent fake social proof, or dress up estimates as certainties. When a number is an estimate, we say so. When something is outside our knowledge, we say that too." },
+  { icon: "users", color: "#FF6B35", h: "Beginners are the point",
+    p: "This app assumes you were never taught this. There is no shame in starting at zero, and nothing here is written to make an expert feel clever at a beginner expense." },
+];
+
+const ABOUT_NEVER = [
+  "Sell or share your personal data",
+  "Show advertisements",
+  "Take affiliate money to steer your decisions",
+  "Ask for your bank login, card number, or SSN",
+  "Use dark patterns to keep you scrolling",
+  "Charge you to see your own information",
+];
+
+const ABOUT_SCHOOL = [
+  { h: "A real curriculum", p: "Four units and 24 sequenced lessons: Money Basics, Earning, Banking and Saving, and Credit, Debt and Danger. Each lesson has original content, a key takeaway, and a comprehension quiz." },
+  { h: "Aligned to standards", p: "Units map to national financial literacy categories including Financial Decision Making, Employment and Income, Spending and Saving, Investing, Credit and Debt, and Risk Management." },
+  { h: "Built for classrooms", p: "Teachers create a class in seconds and share a six-character join code. A live roster shows every student, lessons completed out of 24, and XP earned." },
+  { h: "Student privacy first", p: "Teachers see first name, lesson progress, and XP. They cannot see income, goals, bills, or any financial figure a student enters. This is enforced at the database level, not just in the interface." },
+  { h: "Learning that transfers", p: "Interactive simulators let students watch taxes reduce a paycheck and watch compound interest build a fortune. Finishing all four units unlocks the real tools adults use inside the same app." },
+  { h: "Evidence of completion", p: "Each completed unit produces a dated certificate in the student name, giving teachers a gradeable artifact and students something worth keeping." },
+];
+
+function AboutModal({ onClose }) {
+  const [tab, setTab] = useState("mission");
+  const TABS_A = [
+    { id: "mission", label: "Mission" },
+    { id: "why",     label: "Why It Matters" },
+    { id: "schools", label: "For Schools" },
+  ];
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, width: "100vw", height: "100vh", zIndex: 999, background: T.bg, overflowY: "auto", overflowX: "hidden", fontFamily: "'Inter',sans-serif", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", minHeight: "100%", display: "flex", flexDirection: "column" }}>
+
+        {/* Sticky top bar */}
+        <div style={{ position: "sticky", top: 0, zIndex: 5, background: T.bg, borderBottom: "1px solid rgba(255,255,255,0.07)", padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.11)", borderRadius: 99, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+            <Icon name="chevronLeft" size={17} color={T.textMid} />
+          </button>
+          <p style={{ color: T.text, fontWeight: 800, fontSize: 15, margin: 0, letterSpacing: -0.2 }}>Our Purpose</p>
+        </div>
+
+        {/* Hero */}
+        <div style={{ position: "relative", padding: "38px 22px 26px", textAlign: "center", overflow: "hidden" }}>
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 0%, rgba(124,92,252,0.16) 0%, transparent 62%)", pointerEvents: "none" }} />
+          <div style={{ position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><PiggyLogo size={92} /></div>
+            <p style={{ color: T.text, fontWeight: 900, fontSize: 30, margin: 0, letterSpacing: -1 }}>Freedom <span style={{ background: GRAD.purple, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Funds</span></p>
+            <p style={{ color: T.textSub, fontSize: 11, margin: "8px 0 0", letterSpacing: 2.6, textTransform: "uppercase", fontWeight: 700 }}>Save Smart · Grow Free · Live Bold</p>
+          </div>
+        </div>
+
+        {/* Sticky tabs */}
+        <div style={{ position: "sticky", top: 65, zIndex: 4, background: T.bg, padding: "0 18px 12px" }}>
+          <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 13, padding: 4 }}>
+            {TABS_A.map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, background: tab === t.id ? GRAD.purple : "none", border: "none", borderRadius: 10, padding: "10px 0", cursor: "pointer", color: tab === t.id ? "#fff" : T.textSub, fontFamily: "'Inter',sans-serif", fontWeight: tab === t.id ? 700 : 500, fontSize: 13, transition: "all 0.2s" }}>{t.label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, padding: "6px 22px 26px" }}>
+
+          {tab === "mission" && (
+            <>
+              <p style={{ color: T.text, fontSize: 22, fontWeight: 800, margin: "14px 0 12px", lineHeight: 1.4, letterSpacing: -0.6 }}>
+                Most people are handed a paycheck and no instructions.
+              </p>
+              <p style={{ color: T.textMid, fontSize: 14, margin: "0 0 26px", lineHeight: 1.75 }}>
+                School teaches the quadratic formula but not how a paycheck gets taxed, how credit scores are built, or why saving at 16 beats saving at 30. That gap is not a personal failing. It is a curriculum failure, and it costs people decades. Freedom Funds exists to close it, and to make the road out of the paycheck-to-paycheck cycle something you can actually see.
+              </p>
+              <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.6, textTransform: "uppercase", margin: "0 0 4px" }}>What we believe</p>
+              {ABOUT_PRINCIPLES.map(s => (
+                <div key={s.h} style={{ padding: "18px 0", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 9 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 12, background: `${s.color}1c`, border: `1px solid ${s.color}42`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Icon name={s.icon} size={17} color={s.color} strokeWidth={1.9} />
+                    </div>
+                    <p style={{ color: T.text, fontWeight: 800, fontSize: 16, margin: 0, letterSpacing: -0.2 }}>{s.h}</p>
+                  </div>
+                  <p style={{ color: T.textMid, fontSize: 14, margin: 0, lineHeight: 1.7 }}>{s.p}</p>
+                </div>
+              ))}
+            </>
+          )}
+
+          {tab === "why" && (
+            <>
+              <p style={{ color: T.text, fontSize: 20, fontWeight: 800, margin: "14px 0 10px", lineHeight: 1.45, letterSpacing: -0.5 }}>
+                This is not a niche problem. It is the default condition.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11, margin: "18px 0 10px" }}>
+                {ABOUT_STATS.map(s => (
+                  <div key={s.n} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 16, padding: "17px 14px" }}>
+                    <p style={{ color: T.purple, fontWeight: 900, fontSize: 26, margin: "0 0 6px", letterSpacing: -0.8 }}>{s.n}</p>
+                    <p style={{ color: T.textSub, fontSize: 11.5, margin: 0, lineHeight: 1.5 }}>{s.l}</p>
+                  </div>
+                ))}
+              </div>
+              <p style={{ color: T.textSub, fontSize: 11, margin: "0 0 26px", lineHeight: 1.55, fontStyle: "italic" }}>
+                Figures are approximate US averages drawn from public surveys and federal data, rounded for clarity. They move year to year.
+              </p>
+
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 20 }}>
+                <p style={{ color: T.text, fontWeight: 800, fontSize: 17, margin: "0 0 8px", letterSpacing: -0.3 }}>The compounding cost of not knowing</p>
+                <p style={{ color: T.textMid, fontSize: 14, margin: "0 0 24px", lineHeight: 1.75 }}>
+                  A person who starts saving five dollars a day at sixteen can pass a million dollars by retirement. The same person starting at thirty gets less than half. Nobody hands teenagers that math, and by the time most people find it, the cheapest years are already spent. Time is the one financial advantage that cannot be bought back, and it is the one we hand out for free.
+                </p>
+              </div>
+
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 20 }}>
+                <p style={{ color: T.text, fontWeight: 800, fontSize: 17, margin: "0 0 14px", letterSpacing: -0.3 }}>What we will never do</p>
+                {ABOUT_NEVER.map(item => (
+                  <div key={item} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0" }}>
+                    <div style={{ width: 21, height: 21, borderRadius: 99, background: "rgba(255,90,110,0.12)", border: "1px solid rgba(255,90,110,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Icon name="x" size={11} color={T.red} strokeWidth={2.5} />
+                    </div>
+                    <p style={{ color: T.textMid, fontSize: 14, margin: 0 }}>{item}</p>
+                  </div>
+                ))}
+                <p style={{ color: T.text, fontSize: 14, margin: "18px 0 0", lineHeight: 1.7, fontWeight: 600 }}>
+                  An app about escaping consumerism has no business monetizing your attention.
+                </p>
+              </div>
+            </>
+          )}
+
+          {tab === "schools" && (
+            <>
+              <p style={{ color: T.text, fontSize: 20, fontWeight: 800, margin: "14px 0 10px", lineHeight: 1.45, letterSpacing: -0.5 }}>
+                A full financial literacy course, ready for your classroom.
+              </p>
+              <p style={{ color: T.textMid, fontSize: 14, margin: "0 0 22px", lineHeight: 1.75 }}>
+                School Mode runs inside the app, built so a teacher can start a class in one period and so students leave with skills that survive graduation.
+              </p>
+              {ABOUT_SCHOOL.map(s => (
+                <div key={s.h} style={{ padding: "17px 0", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                  <p style={{ color: T.text, fontWeight: 800, fontSize: 16, margin: "0 0 7px", letterSpacing: -0.2 }}>{s.h}</p>
+                  <p style={{ color: T.textMid, fontSize: 14, margin: 0, lineHeight: 1.7 }}>{s.p}</p>
+                </div>
+              ))}
+              <div style={{ background: "rgba(124,92,252,0.09)", border: "1px solid rgba(124,92,252,0.28)", borderRadius: 16, padding: 17, margin: "20px 0 0" }}>
+                <p style={{ color: T.text, fontWeight: 700, fontSize: 15, margin: "0 0 6px" }}>Bringing this to your school?</p>
+                <p style={{ color: T.textMid, fontSize: 13, margin: 0, lineHeight: 1.65 }}>Open School Mode and tap Teacher to create a class and see the roster and standards alignment for yourself. No setup call required.</p>
+              </div>
+            </>
+          )}
+
+          <p style={{ color: T.textSub, fontSize: 13, margin: "30px 0 10px", lineHeight: 1.6, textAlign: "center", fontStyle: "italic" }}>Small steps today, big changes tomorrow.</p>
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "0 22px 30px" }}>
+          <button onClick={onClose} style={S.primaryBtn()}>Back</button>
+        </div>
+
+      </div>
     </div>
   );
 }
@@ -8752,6 +9040,150 @@ const STUDENT_LESSONS = [
     keyTakeaway: "Your identity is an asset. Lock it like one.",
     quiz: { q: "Someone you do not know asks for your SSN over DM to send a prize. You should...", opts: ["Send it fast","Send half of it","Never send it","Ask for the prize first"], correct: 2 },
   },
+  {
+    id: "s25", unit: 5, title: "Saving vs Investing", emoji: "🌾", xp: 90, unlocked: true,
+    content: "Saving protects money. Investing grows it. Savings accounts are safe and slow — perfect for money you need within a few years. Investments rise and fall in the short term but historically grow far faster over decades.\n\nThe rule of thumb: money you need within 3 years belongs in savings. Money you will not touch for 5 or more years is a candidate for investing. Mixing those up is how people get hurt.",
+    keyTakeaway: "Short-term money saves. Long-term money invests.",
+    quiz: { q: "Money you need in 18 months belongs in...", opts: ["Stocks","A savings account","Crypto","Real estate"], correct: 1 },
+  },
+  {
+    id: "s26", unit: 5, title: "What a Stock Actually Is", emoji: "🏢", xp: 90, unlocked: false,
+    content: "A share of stock is a small piece of ownership in a real company. If the company grows and earns more, your slice becomes more valuable. If it struggles, your slice loses value. You are not betting — you are owning.\n\nThis is why the question that matters is not what is the price doing today, but is this a business that will be bigger in ten years. Owners think in years. Gamblers think in days.",
+    keyTakeaway: "A stock is ownership in a business, not a lottery ticket.",
+    quiz: { q: "Buying a stock means you...", opts: ["Loan money to a bank","Own a piece of a company","Buy a bond","Rent an asset"], correct: 1 },
+  },
+  {
+    id: "s27", unit: 5, title: "Index Funds: The Boring Winner", emoji: "🧺", xp: 90, unlocked: false,
+    content: "An index fund buys a tiny slice of hundreds of companies at once. Instead of guessing which company wins, you own the whole market and rise with it. One purchase, instant diversification, very low fees.\n\nMost professional stock pickers fail to beat a simple index fund over long periods. That is not an insult to them — it is a statement about how hard beating the market is. Boring and consistent usually wins.",
+    keyTakeaway: "Owning the whole market beats guessing which company wins.",
+    quiz: { q: "The main advantage of an index fund is...", opts: ["Guaranteed profit","Instant diversification at low cost","No risk","Daily payouts"], correct: 1 },
+  },
+  {
+    id: "s28", unit: 5, title: "Risk, Return, and Time", emoji: "⏳", xp: 90, unlocked: false,
+    content: "Higher potential returns always come with higher potential losses. Anyone promising high returns with no risk is lying. What actually reduces risk is not cleverness — it is time and diversification.\n\nOver one year, the stock market can drop sharply. Over twenty years, broad market investments have historically grown substantially. Time turns volatility from a threat into noise.",
+    keyTakeaway: "Risk and return travel together. Time is what tames risk.",
+    quiz: { q: "Someone promises high returns with zero risk. This is...", opts: ["A rare deal","A scam or a lie","Normal investing","A government bond"], correct: 1 },
+  },
+  {
+    id: "s29", unit: 5, title: "Retirement Accounts Explained", emoji: "🏖️", xp: 90, unlocked: false,
+    content: "A 401k is offered through work and often includes an employer match — free money for contributing. An IRA is one you open yourself. Both give tax advantages that regular accounts do not.\n\nPriority order for most people: contribute enough to get the full employer match, build an emergency fund, then invest more. Skipping the match is turning down part of your pay.",
+    keyTakeaway: "Always capture the full employer match. It is free money.",
+    quiz: { q: "An employer 401k match is best described as...", opts: ["A loan","Free money for contributing","A tax penalty","A bonus for quitting"], correct: 1 },
+  },
+  {
+    id: "s30", unit: 5, title: "Why You Should Not Time the Market", emoji: "🎢", xp: 90, unlocked: false,
+    content: "Timing the market means trying to buy at the bottom and sell at the top. Almost nobody does it consistently, including professionals. Missing just a handful of the market best days over decades can dramatically reduce returns — and those days often come right after the scary ones.\n\nThe alternative is boring and effective: invest a fixed amount on a schedule regardless of the news. You buy more shares when prices are low and fewer when high, automatically.",
+    keyTakeaway: "Consistent investing beats clever timing.",
+    quiz: { q: "Investing a fixed amount on a regular schedule is called...", opts: ["Day trading","Dollar-cost averaging","Market timing","Hedging"], correct: 1 },
+  },
+  {
+    id: "s31", unit: 6, title: "How Tax Brackets Really Work", emoji: "📊", xp: 90, unlocked: true,
+    content: "A common myth says earning more can leave you with less because you jump a bracket. That is false. Brackets are marginal — only the dollars above each threshold are taxed at the higher rate.\n\nIf a bracket starts at $50,000, only your income above $50,000 gets the higher rate. Your earlier dollars keep their lower rates. A raise always leaves you with more take-home pay.",
+    keyTakeaway: "Only the dollars above a threshold get the higher rate.",
+    quiz: { q: "You move into a higher tax bracket. Your total take-home pay...", opts: ["Goes down","Still goes up","Stays identical","Becomes untaxed"], correct: 1 },
+  },
+  {
+    id: "s32", unit: 6, title: "Deductions and Credits", emoji: "🧮", xp: 90, unlocked: false,
+    content: "A deduction lowers the income you are taxed on. A credit lowers the tax you owe, dollar for dollar. Credits are more powerful — a $1,000 credit saves you $1,000, while a $1,000 deduction saves only your tax rate on it.\n\nMost people take the standard deduction, a flat amount that requires no receipts. Itemizing only makes sense when your specific deductions add up to more than the standard.",
+    keyTakeaway: "Credits beat deductions dollar for dollar.",
+    quiz: { q: "Which reduces your tax bill dollar for dollar?", opts: ["A deduction","A credit","An exemption","A withholding"], correct: 1 },
+  },
+  {
+    id: "s33", unit: 6, title: "W-2 vs 1099 Work", emoji: "🧾", xp: 90, unlocked: false,
+    content: "A W-2 employee has taxes withheld automatically. A 1099 contractor is paid the full amount and is responsible for their own taxes — including both halves of Social Security and Medicare, roughly 15 percent on top of income tax.\n\nThat is why $25 an hour as a contractor is not the same as $25 an hour as an employee. Contractors should set aside roughly 25 to 30 percent of every payment for taxes.",
+    keyTakeaway: "Contractors must set aside their own taxes. Budget about 25 to 30 percent.",
+    quiz: { q: "A 1099 contractor should set aside roughly what share for taxes?", opts: ["Nothing","5 percent","25 to 30 percent","70 percent"], correct: 2 },
+  },
+  {
+    id: "s34", unit: 6, title: "Adjusting Your Withholding", emoji: "🎚️", xp: 90, unlocked: false,
+    content: "A huge tax refund feels great but means you loaned the government your money interest free all year. Owing a large amount means you underpaid. The goal is landing near zero.\n\nThe W-4 form controls how much is withheld from each paycheck. Update it after major life changes: a new job, marriage, a child, or a second income. Small adjustments now beat surprises in April.",
+    keyTakeaway: "Aim for a small refund, not a big one. Big refunds mean overpaying all year.",
+    quiz: { q: "A very large tax refund usually means you...", opts: ["Earned extra money","Overpaid taxes all year","Committed fraud","Got a bonus"], correct: 1 },
+  },
+  {
+    id: "s35", unit: 6, title: "Raising Your Income", emoji: "📈", xp: 90, unlocked: false,
+    content: "Cutting costs has a floor — you cannot spend less than zero. Income has no ceiling. Long term, earning more moves the needle further than any budgeting trick.\n\nThe three levers: do your current job better and ask for more, add a skill that raises your market rate, or sell something on the side. Most people only pull the first lever, and only occasionally.",
+    keyTakeaway: "Cutting has a floor. Earning has no ceiling.",
+    quiz: { q: "Which lever has no upper limit?", opts: ["Cutting expenses","Raising income","Skipping coffee","Cancelling subscriptions"], correct: 1 },
+  },
+  {
+    id: "s36", unit: 6, title: "How to Ask for a Raise", emoji: "🗣️", xp: 90, unlocked: false,
+    content: "Raises are given for documented value, not for time served or need. Before asking, write down what you have delivered — problems solved, money saved, work taken on beyond your role.\n\nResearch what your role pays in your area, name a specific number, and ask at a calm moment rather than during a crisis. If the answer is no, ask what would need to be true in six months, and get it in writing.",
+    keyTakeaway: "Bring documented value and a specific number, not feelings.",
+    quiz: { q: "The strongest case for a raise is...", opts: ["How long you have worked","Documented results and market rate","Personal expenses rising","A coworker earning more"], correct: 1 },
+  },
+  {
+    id: "s37", unit: 7, title: "Insurance Basics", emoji: "🛡️", xp: 90, unlocked: true,
+    content: "Insurance exists so that one terrible day cannot erase a decade of progress. You pay a small predictable amount to avoid a rare catastrophic one. That trade is worth it for disasters, not for small stuff you could absorb.\n\nKey words: premium is what you pay, deductible is what you cover before insurance kicks in, and coverage limit is the maximum it will pay. Higher deductibles usually mean lower premiums.",
+    keyTakeaway: "Insure catastrophes, not inconveniences.",
+    quiz: { q: "The amount you pay before insurance starts covering is the...", opts: ["Premium","Deductible","Claim","Policy limit"], correct: 1 },
+  },
+  {
+    id: "s38", unit: 7, title: "Health Insurance Without the Headache", emoji: "🏥", xp: 90, unlocked: false,
+    content: "Health costs are the leading cause of surprise financial disasters. Even a young healthy person can face a five-figure bill from one accident.\n\nCompare plans on total expected cost, not just the monthly premium: add premiums plus likely deductible use. A cheap premium with a huge deductible can cost more overall. Always check whether your doctors are in network.",
+    keyTakeaway: "Compare total expected cost, not just the monthly premium.",
+    quiz: { q: "A plan with a low premium and very high deductible is best for...", opts: ["Frequent medical needs","Someone rarely needing care","Everyone equally","Nobody"], correct: 1 },
+  },
+  {
+    id: "s39", unit: 7, title: "Renters and Auto Coverage", emoji: "🚗", xp: 90, unlocked: false,
+    content: "Renters insurance is usually inexpensive and covers your belongings plus liability if someone is hurt in your place. Many renters skip it, then lose everything in a fire or theft with no recourse.\n\nFor auto, liability coverage protects you if you injure someone or damage property — the truly catastrophic scenario. Carrying only the state minimum can leave you personally responsible for the rest.",
+    keyTakeaway: "Liability coverage protects your future income, not just your stuff.",
+    quiz: { q: "Renters insurance mainly covers...", opts: ["The building itself","Your belongings and liability","Your car","Your medical bills only"], correct: 1 },
+  },
+  {
+    id: "s40", unit: 7, title: "Identity Theft Defense", emoji: "🔐", xp: 90, unlocked: false,
+    content: "Your identity can be used to open accounts in your name for years before you notice. A credit freeze is the strongest free defense — it blocks new accounts from being opened until you unfreeze it, and it does not affect your existing accounts or score.\n\nAlso: unique passwords everywhere, two-factor login on financial accounts, and checking your free credit reports periodically for accounts you did not open.",
+    keyTakeaway: "A credit freeze is free and blocks new accounts in your name.",
+    quiz: { q: "The strongest free protection against new-account identity theft is...", opts: ["Changing your email","A credit freeze","Paying with cash","Deleting social media"], correct: 1 },
+  },
+  {
+    id: "s41", unit: 7, title: "Scams That Target Adults", emoji: "🎣", xp: 90, unlocked: false,
+    content: "Adult scams look official: fake bank fraud alerts, IRS threats, tech support popups, romance schemes, and job offers that overpay and ask for a refund. The tells never change — urgency, secrecy, and unusual payment methods.\n\nNo real bank or government agency demands gift cards, crypto, or wire transfers. When in doubt, hang up and call the official number from the back of your card. Real institutions do not mind you verifying.",
+    keyTakeaway: "Hang up and call the official number. Real institutions never mind.",
+    quiz: { q: "A caller claiming to be the IRS demands gift cards. This is...", opts: ["Standard procedure","Always a scam","Only for back taxes","A payment plan"], correct: 1 },
+  },
+  {
+    id: "s42", unit: 7, title: "Wills and Beneficiaries", emoji: "📜", xp: 90, unlocked: false,
+    content: "A beneficiary designation on a retirement account or life insurance policy overrides whatever a will says. That single form controls where the money goes, and it is frequently left outdated after a marriage, divorce, or death.\n\nEven young adults benefit from naming beneficiaries and keeping them current. It takes minutes, costs nothing, and spares the people you love a long legal process.",
+    keyTakeaway: "Beneficiary forms override wills. Keep them current.",
+    quiz: { q: "Who receives a retirement account is decided mainly by...", opts: ["The will","The beneficiary designation","State law","The employer"], correct: 1 },
+  },
+  {
+    id: "s43", unit: 8, title: "Net Worth Is the Scoreboard", emoji: "🏆", xp: 100, unlocked: true,
+    content: "Income tells you how fast you are moving. Net worth tells you how far you have traveled. It is everything you own minus everything you owe, and it is the only number that captures your whole financial picture.\n\nHigh earners with high debt can have negative net worth. Modest earners who save consistently can build substantial wealth. Track it a few times a year — the trend matters far more than any single reading.",
+    keyTakeaway: "Track the trend of net worth, not the size of your paycheck.",
+    quiz: { q: "Net worth equals...", opts: ["Income minus expenses","Assets minus liabilities","Salary times years","Savings plus income"], correct: 1 },
+  },
+  {
+    id: "s44", unit: 8, title: "Assets vs Liabilities", emoji: "⚖️", xp: 100, unlocked: false,
+    content: "An asset puts money in your pocket or grows in value. A liability takes money out. The confusion that traps people is treating expensive liabilities as if they were assets.\n\nA financed car that loses value and demands payments, insurance, and fuel is a liability with a title. Understanding which side of the ledger something sits on changes what you buy.",
+    keyTakeaway: "If it takes money out every month and loses value, it is a liability.",
+    quiz: { q: "Which is most clearly an asset?", opts: ["A financed depreciating car","An index fund","A credit card balance","A store card"], correct: 1 },
+  },
+  {
+    id: "s45", unit: 8, title: "The FIRE Idea", emoji: "🔥", xp: 100, unlocked: false,
+    content: "Financial independence means your investments could cover your living costs, making work optional. A common rough guide is 25 times your annual expenses, based on withdrawing about 4 percent a year.\n\nYou do not have to retire early to benefit. Every step toward that number buys freedom: the ability to leave a bad job, take a risk, or absorb a crisis without panic.",
+    keyTakeaway: "Roughly 25 times your annual expenses is the classic independence target.",
+    quiz: { q: "A common rough target for financial independence is...", opts: ["5 times annual expenses","25 times annual expenses","100 times monthly rent","Your yearly salary"], correct: 1 },
+  },
+  {
+    id: "s46", unit: 8, title: "Multiple Income Streams", emoji: "🌊", xp: 100, unlocked: false,
+    content: "One income is one point of failure. A layoff takes 100 percent of your household income overnight. Additional streams — a side business, freelance work, dividends, rent — reduce that fragility.\n\nStart with one small stream and let it grow before adding another. The goal is not exhaustion. It is that no single event can take everything at once.",
+    keyTakeaway: "One income is one point of failure.",
+    quiz: { q: "The main financial benefit of multiple income streams is...", opts: ["Working more hours","Reduced risk from losing one source","Higher taxes","Simpler budgeting"], correct: 1 },
+  },
+  {
+    id: "s47", unit: 8, title: "Lifestyle Creep", emoji: "🎈", xp: 100, unlocked: false,
+    content: "Lifestyle creep is spending rising to match every raise, leaving you exactly as stretched at $90,000 as you were at $45,000. It is the single most common reason high earners stay broke.\n\nThe defense is simple and mechanical: when income rises, immediately move a fixed share of the increase into savings or investments before adjusting your spending. You never miss what never landed in checking.",
+    keyTakeaway: "Bank half of every raise before you get used to it.",
+    quiz: { q: "Lifestyle creep means...", opts: ["Prices rising over time","Spending rising with every raise","Moving to a cheaper city","Slowly paying off debt"], correct: 1 },
+  },
+  {
+    id: "s48", unit: 8, title: "Your 10-Year Plan", emoji: "🗺️", xp: 100, unlocked: false,
+    content: "Wealth is rarely built by one dramatic decision. It is built by a handful of boring habits repeated for years: spend less than you earn, avoid high-interest debt, invest consistently, protect against catastrophe, and keep learning.\n\nWrite down where you want to be in ten years and what it costs. Then work backward into a yearly number, then a monthly one. A goal with a number and a date stops being a dream and becomes a plan.",
+    keyTakeaway: "Boring habits repeated for a decade beat any single brilliant move.",
+    quiz: { q: "The most reliable path to wealth is...", opts: ["One perfect investment","Consistent boring habits over years","Timing the market","Waiting for luck"], correct: 1 },
+  },
 ];
 
 const SCHOOL_UNITS = [
@@ -8759,6 +9191,10 @@ const SCHOOL_UNITS = [
   { id: 2, name: "Earning",               icon: "trendUp",    color: "#FF6B35" },
   { id: 3, name: "Banking & Saving",      icon: "wallet",     color: "#00D2A0" },
   { id: 4, name: "Credit, Debt & Danger", icon: "shield",     color: "#FF5A6E" },
+  { id: 5, name: "Investing",             icon: "trendUp",    color: "#00E5CC" },
+  { id: 6, name: "Taxes & Income",        icon: "pieChart",   color: "#4FACFE" },
+  { id: 7, name: "Protection & Risk",     icon: "lock",       color: "#FF4FA1" },
+  { id: 8, name: "Building Wealth",       icon: "award",      color: "#F5A623" },
 ];
 
 const SCHOOL_STANDARDS = [
@@ -8766,6 +9202,10 @@ const SCHOOL_STANDARDS = [
   { unit: 2, cats: ["Employment & Income", "Financial Decision Making"] },
   { unit: 3, cats: ["Spending & Saving", "Investing"] },
   { unit: 4, cats: ["Credit & Debt", "Risk Management & Insurance"] },
+  { unit: 5, cats: ["Investing", "Financial Decision Making"] },
+  { unit: 6, cats: ["Employment & Income", "Financial Decision Making"] },
+  { unit: 7, cats: ["Risk Management & Insurance", "Credit & Debt"] },
+  { unit: 8, cats: ["Investing", "Spending & Saving"] },
 ];
 
 
@@ -8800,6 +9240,59 @@ const DAILY_TIPS = [
   { t: "One account for bills", b: "Keep fixed bills in their own account. What is left in checking is truly spendable — no more mental math, no more accidental overdrafts." },
   { t: "Buy quality once", b: "For things you use daily, cheap costs more over time. Shoes, tools, a mattress — the cost per use is what matters, not the sticker." },
   { t: "Freedom is the goal", b: "The point is not to be the richest person you know. It is to reach the day where work is a choice. Every dollar saved buys a piece of that." }
+,
+  { t: "Check your credit report free", b: "You can pull your credit reports for free each year. Look for accounts you did not open and balances that look wrong. Errors are common and they cost you real money in higher rates." },
+  { t: "The envelope trick still works", b: "Give problem categories a fixed amount at the start of the month. When it is gone, it is gone. Physical limits beat willpower every time." },
+  { t: "Beware buy now pay later", b: "Splitting a purchase into four payments makes expensive things feel cheap. Stacked across several purchases, it quietly becomes debt with due dates you forgot." },
+  { t: "Know your interest rates", b: "Write down every debt and its rate. Most people do not know, and the highest rate is usually costing far more than they realize." },
+  { t: "Emergency does not mean sale", b: "A sale is not an emergency. Neither is a limited-time offer. Emergencies are unplanned, urgent, and necessary. Almost nothing else qualifies." },
+  { t: "Automate the boring parts", b: "Automatic transfers, automatic bill pay, automatic investing. Every decision you remove is a decision you cannot get wrong on a bad day." },
+  { t: "Read before you sign", b: "Loan terms, leases, and gym contracts all hide their real cost in the fine print. Fifteen minutes of reading can save years of payments." },
+  { t: "Your first $1,000 is hardest", b: "The first thousand saved takes the most discipline. After that, momentum and habit do more of the work than willpower does." },
+  { t: "Compare cost per use", b: "A $200 jacket worn 200 times costs a dollar a wear. A $40 one worn twice costs twenty. Price alone tells you almost nothing." },
+  { t: "Do not borrow for depreciation", b: "Financing something that loses value means paying interest on a shrinking asset. Cars, electronics, and furniture all qualify." },
+  { t: "Set a spending pause number", b: "Pick a dollar amount above which you always sleep on it. For most people somewhere between $50 and $200 works well." },
+  { t: "Check for unclaimed money", b: "States hold billions in unclaimed property from old accounts and refunds. Searching your state database is free and takes minutes." },
+  { t: "Understand your benefits", b: "Employer benefits often include retirement matching, insurance, and training budgets people never use. Unused benefits are unclaimed pay." },
+  { t: "Rent is not throwing money away", b: "Renting buys flexibility and freedom from maintenance and property tax. Buying is right when you plan to stay put for years, not by default." },
+  { t: "The two-account system", b: "One account for bills, one for spending. When bills are walled off, whatever is left is genuinely yours to use without guilt." },
+  { t: "Watch the annual total", b: "Small recurring charges hide behind small numbers. Multiply every subscription by twelve before deciding it is worth it." },
+  { t: "Learn to say the number", b: "When negotiating, name a specific figure and then stop talking. Silence does more work than explanation." },
+  { t: "Your time has a rate", b: "Calculate what an hour of your time is worth. It makes decisions about driving across town to save five dollars much clearer." },
+  { t: "Debt has an emotional cost", b: "Beyond interest, debt costs sleep, options, and confidence. Those are real costs even though no statement lists them." },
+  { t: "Give with intention", b: "Generosity feels better and hurts less when it is planned into your budget rather than improvised under pressure." },
+  { t: "Match your goals to accounts", b: "Separate accounts for separate goals turns abstract saving into visible progress. Progress you can see is progress you continue." },
+  { t: "Do not invest borrowed money", b: "Borrowing to invest turns a normal market dip into a crisis. Invest money you can leave alone through bad years." },
+  { t: "Review once a month", b: "A monthly fifteen minute review catches problems while they are small. Nobody needs to check daily, but nobody should check yearly." },
+  { t: "Kill the smallest bill first", b: "If motivation is the problem, eliminate the smallest recurring bill entirely. One fewer thing to track is its own reward." },
+  { t: "Prices are often negotiable", b: "Medical bills, gym memberships, insurance rates, and internet plans are frequently negotiable. Asking costs nothing." },
+  { t: "Beware lifestyle by comparison", b: "Social media shows purchases, not the debt behind them. You are comparing your reality to someone else marketing." },
+  { t: "Keep a want list", b: "Write down things you want with the date. Revisit in a month. Most items lose their pull, and the ones that survive are worth buying." },
+  { t: "Track net worth quarterly", b: "Four snapshots a year is enough to see the trend without obsessing. The direction matters more than the number." },
+  { t: "Understand APR vs APY", b: "APR is what you pay on debt. APY is what you earn on savings, including compounding. Same math, opposite sides of your life." },
+  { t: "Build one skill per year", b: "One meaningful skill a year compounds into a career that is hard to replace. This is the highest return investment available." },
+  { t: "Plan for irregular costs", b: "Car repairs, gifts, and annual fees are not surprises. Divide the yearly total by twelve and save monthly so they never hurt." },
+  { t: "Never finance a want", b: "If you cannot buy it outright, you cannot afford it yet. Financing wants converts patience into interest payments." },
+  { t: "Beware the upgrade cycle", b: "Phones, cars, and homes all invite upgrades that reset your progress. Keeping something one extra year is a raise you gave yourself." },
+  { t: "Money conversations early", b: "Talking about money with a partner before it is urgent prevents most money fights. Silence is what makes it explosive." },
+  { t: "Small wins build identity", b: "Each time you follow through, you become someone who follows through. Identity is what makes habits stick after motivation fades." },
+  { t: "Beware the free upgrade", b: "Free trials that require a card are designed around forgetting. Set a reminder the day you sign up or skip it entirely." },
+  { t: "Cash flow beats net worth monthly", b: "Long term, net worth wins. Month to month, cash flow determines whether you sleep well. Watch both, for different reasons." },
+  { t: "Emergencies come in threes", b: "Plan for overlapping problems, not one at a time. That is why the target is months of expenses, not a single repair bill." },
+  { t: "Interest is rent on money", b: "Paying interest is renting someone else money. Earning interest is renting yours out. Decide which side you want to be on." },
+  { t: "Do the math out loud", b: "Say the yearly cost aloud before recurring purchases. Words make numbers real in a way that reading does not." },
+  { t: "Your budget should breathe", b: "A budget with zero fun is a budget you will abandon. Build in guilt-free spending on purpose so the plan survives." },
+  { t: "Check your pay stub", b: "Errors in hours, rates, and deductions happen more than people think. Nobody will catch it for you." },
+  { t: "Refinance when rates drop", b: "Lower rates on a large loan can save thousands. Check periodically. It is one call for a permanent reduction." },
+  { t: "Beware the store card pitch", b: "Store cards offer a small discount today for a high interest rate and a hard credit check. The math rarely favors you." },
+  { t: "Understand minimum balance rules", b: "Some accounts charge fees below a threshold. Knowing your account rules prevents paying a bank to hold your money." },
+  { t: "Money buys options", b: "The point of savings is not stuff. It is options: to leave, to rest, to say no, to take a risk. Options are the real return." },
+  { t: "The best time was earlier", b: "The second best time is now. Regret about not starting sooner is the most expensive emotion in personal finance." },
+  { t: "Slow is a strategy", b: "Getting rich slowly is not a consolation prize. It is the only method that works reliably for most people." },
+  { t: "Protect your energy too", b: "Financial decisions made while exhausted or stressed are usually worse. Delay big choices until you are rested." },
+  { t: "Write your why", b: "Knowing exactly what you are building toward makes saying no to small things feel like winning instead of losing." },
+  { t: "Teach it to keep it", b: "Explaining a money concept to someone else is the fastest way to find out whether you truly understand it." },
+  { t: "Freedom compounds too", b: "Every dollar saved buys a slice of a future day you do not have to work. That is what compounding is really building." }
 ];
 
 const WEEKLY_CHALLENGES = [
@@ -8814,21 +9307,35 @@ const WEEKLY_CHALLENGES = [
   { id: 9, title: "Sell One Thing", body: "Sell something you have not used in a year. Put the money into a goal.", xp: 130 },
   { id: 10, title: "Emergency Fund Sprint", body: "Add anything you can to your emergency fund this week. Any amount counts.", xp: 140 },
   { id: 11, title: "Price Your Wants", body: "List everything you want to buy. Convert each to hours of work at your wage.", xp: 110 },
-  { id: 12, title: "Teach Someone", body: "Explain one money lesson you learned to a friend or family member.", xp: 120 }
+  { id: 12, title: "Teach Someone", body: "Explain one money lesson you learned to a friend or family member.", xp: 120 },
+  { id: 13, title: "Audit Every Subscription", body: "List every recurring charge and cancel at least one you forgot about.", xp: 130 },
+  { id: 14, title: "Check Your Credit Report", body: "Pull your free report and scan for accounts or errors you do not recognize.", xp: 150 },
+  { id: 15, title: "Freeze Your Credit", body: "Set a credit freeze at all three bureaus. Free, reversible, and blocks new-account fraud.", xp: 180 },
+  { id: 16, title: "Calculate Your Net Worth", body: "Add up everything you own and everything you owe. Write the number down.", xp: 140 },
+  { id: 17, title: "Name Every Interest Rate", body: "List each debt with its rate. Circle the highest one.", xp: 120 },
+  { id: 18, title: "Meal Plan One Week", body: "Plan and shop for a full week of meals. Track what you saved on takeout.", xp: 130 },
+  { id: 19, title: "Ask for a Better Rate", body: "Call one provider or card issuer and request a lower rate or bill.", xp: 180 },
+  { id: 20, title: "Set Up Automatic Investing", body: "Automate any recurring amount into a retirement or investment account.", xp: 200 },
+  { id: 21, title: "Do a No-Buy Week", body: "Seven days, essentials only. Notice which urges were habit rather than need.", xp: 160 },
+  { id: 22, title: "Review Your Withholding", body: "Check your last pay stub and decide whether your W-4 needs adjusting.", xp: 140 },
+  { id: 23, title: "Name Your Beneficiaries", body: "Check or add beneficiaries on any retirement or insurance account.", xp: 150 },
+  { id: 24, title: "Build a Want List", body: "Write down everything you want to buy with today date. Revisit in 30 days.", xp: 110 },
+  { id: 25, title: "Calculate Your Freedom Number", body: "Multiply your annual expenses by 25. That is your independence target.", xp: 160 },
+  { id: 26, title: "Compare One Insurance Quote", body: "Get one competing quote on auto or renters coverage.", xp: 150 }
 ];
 
 const ffDayIndex = () => Math.floor(Date.now() / 86400000);
 const ffWeekIndex = () => Math.floor(Date.now() / (86400000 * 7));
 
 const SCHOOL_ROADMAP = [
-  { n: 1, type: "unit", unitId: 1, title: "Money Basics",           sub: "What money is and how to think about it" },
-  { n: 2, type: "unit", unitId: 2, title: "Earning",                sub: "Jobs, paychecks, taxes, and hustles" },
-  { n: 3, type: "unit", unitId: 3, title: "Banking & Saving",       sub: "Accounts, fees, and compound growth" },
-  { n: 4, type: "unit", unitId: 4, title: "Credit, Debt & Danger",  sub: "Scores, loans, scams, and identity" },
-  { n: 5, type: "app",  tab: "invest",   icon: "trendUp",    color: "#00D2A0", title: "Investing Basics",  sub: "Graduate to the real investing guide" },
-  { n: 6, type: "app",  tab: "tax",      icon: "pieChart",   color: "#F5A623", title: "Taxes in Action",   sub: "Estimate real taxes on real income" },
-  { n: 7, type: "app",  tab: "credit",   icon: "shield",     color: "#4FACFE", title: "Credit in Real Life", sub: "Track and build an actual score" },
-  { n: 8, type: "app",  tab: "networth", icon: "award",      color: "#9B6BFF", title: "Wealth & Freedom",  sub: "Net worth — the scoreboard of freedom" },
+  { n: 1, type: "unit", unitId: 1, title: "Money Basics",          sub: "What money is and how to think about it" },
+  { n: 2, type: "unit", unitId: 2, title: "Earning",               sub: "Jobs, paychecks, taxes, and hustles" },
+  { n: 3, type: "unit", unitId: 3, title: "Banking & Saving",      sub: "Accounts, fees, and compound growth" },
+  { n: 4, type: "unit", unitId: 4, title: "Credit, Debt & Danger", sub: "Scores, loans, scams, and identity" },
+  { n: 5, type: "unit", unitId: 5, title: "Investing",             sub: "Stocks, index funds, and retirement accounts" },
+  { n: 6, type: "unit", unitId: 6, title: "Taxes & Income",        sub: "Brackets, forms, and raising your pay" },
+  { n: 7, type: "unit", unitId: 7, title: "Protection & Risk",     sub: "Insurance, identity, scams, and beneficiaries" },
+  { n: 8, type: "unit", unitId: 8, title: "Building Wealth",       sub: "Net worth, independence, and the long game" },
 ];
 
 const PARENT_MISSIONS = [
@@ -8915,6 +9422,112 @@ function CompoundSim() {
   );
 }
 
+
+const GLOSSARY = [
+  { t: "401(k)", d: "A retirement account offered through an employer, often with matching contributions. Money grows tax-advantaged until withdrawal." },
+  { t: "APR", d: "Annual Percentage Rate. The yearly cost of borrowing, including interest and certain fees. Lower is better." },
+  { t: "APY", d: "Annual Percentage Yield. What savings earn in a year including compounding. Higher is better." },
+  { t: "Amortization", d: "The schedule showing how each loan payment splits between interest and principal. Early payments are mostly interest." },
+  { t: "Asset", d: "Anything you own that holds or grows value, such as savings, investments, or property." },
+  { t: "Bear market", d: "A prolonged period of falling prices, commonly defined as a drop of 20 percent or more." },
+  { t: "Beneficiary", d: "The person designated to receive an account or policy when the owner dies. This designation overrides a will." },
+  { t: "Bond", d: "A loan you make to a government or company in exchange for interest payments and return of principal." },
+  { t: "Budget", d: "A plan assigning every dollar of income to a purpose before the month begins." },
+  { t: "Bull market", d: "A prolonged period of rising prices and investor optimism." },
+  { t: "Capital gain", d: "Profit from selling an investment for more than you paid. May be taxable." },
+  { t: "Compound interest", d: "Interest earned on both your original money and on previously earned interest. The engine of long-term growth." },
+  { t: "Credit limit", d: "The maximum a card issuer allows you to borrow on that account." },
+  { t: "Credit score", d: "A number from roughly 300 to 850 summarizing how reliably you repay debt." },
+  { t: "Credit utilization", d: "The share of your available credit you are using. Keeping it low helps your score." },
+  { t: "Deductible", d: "The amount you pay out of pocket before insurance begins covering costs." },
+  { t: "Deduction", d: "An amount subtracted from taxable income, lowering the income you are taxed on." },
+  { t: "Depreciation", d: "The loss of value over time, common with vehicles and electronics." },
+  { t: "Diversification", d: "Spreading money across many investments so no single failure is catastrophic." },
+  { t: "Dividend", d: "A share of company profits paid out to shareholders, usually quarterly." },
+  { t: "Dollar-cost averaging", d: "Investing a fixed amount on a regular schedule regardless of price." },
+  { t: "Emergency fund", d: "Cash reserved solely for genuine emergencies, commonly three to six months of expenses." },
+  { t: "Equity", d: "The portion of an asset you truly own after subtracting what you owe on it." },
+  { t: "Escrow", d: "A holding account, often used for property taxes and insurance within a mortgage payment." },
+  { t: "Expense ratio", d: "The annual fee a fund charges as a percentage of your investment. Lower is better." },
+  { t: "FAFSA", d: "The Free Application for Federal Student Aid, the form that unlocks grants, loans, and work-study." },
+  { t: "FICO score", d: "The most widely used credit scoring model in the United States." },
+  { t: "Fixed expense", d: "A cost that stays roughly the same each month, such as rent or insurance." },
+  { t: "Fixed rate", d: "An interest rate that does not change over the life of a loan." },
+  { t: "Grace period", d: "A window after a due date during which no interest or penalty is charged." },
+  { t: "Gross pay", d: "Total earnings before taxes and deductions are removed." },
+  { t: "HSA", d: "Health Savings Account. A tax-advantaged account for medical costs, paired with high-deductible health plans." },
+  { t: "Hard inquiry", d: "A credit check from a lender applying to lend you money. Can slightly lower your score temporarily." },
+  { t: "IRA", d: "Individual Retirement Account. A retirement account you open yourself, separate from an employer." },
+  { t: "Index fund", d: "A fund holding a slice of every company in an index, giving broad diversification at low cost." },
+  { t: "Inflation", d: "The gradual rise in prices over time, which reduces what each dollar can buy." },
+  { t: "Interest", d: "The cost of borrowing money, or the earnings paid on money you lend or save." },
+  { t: "Liability", d: "Anything you owe, such as loans, credit card balances, or unpaid bills." },
+  { t: "Liquidity", d: "How quickly an asset can become cash without losing value. Savings are liquid, property is not." },
+  { t: "Minimum payment", d: "The smallest payment that keeps an account current. Paying only this maximizes interest paid." },
+  { t: "Mutual fund", d: "A pooled investment managed by a professional, holding many securities at once." },
+  { t: "Net pay", d: "Take-home pay after taxes and deductions. The number your budget should use." },
+  { t: "Net worth", d: "Everything you own minus everything you owe. The clearest single measure of financial position." },
+  { t: "Overdraft", d: "Spending more than an account holds, usually triggering a fee." },
+  { t: "Premium", d: "The recurring amount paid to keep an insurance policy active." },
+  { t: "Principal", d: "The original amount borrowed or invested, separate from interest." },
+  { t: "Refinance", d: "Replacing an existing loan with a new one, usually to obtain a lower rate or different term." },
+  { t: "Return", d: "The gain or loss on an investment, usually expressed as a percentage." },
+  { t: "Roth IRA", d: "A retirement account funded with after-tax money, where qualified withdrawals are tax-free." },
+  { t: "Rule of 72", d: "Divide 72 by an interest rate to estimate how many years it takes money to double." },
+  { t: "Secured debt", d: "Debt backed by collateral the lender can take if you stop paying, such as a car loan." },
+  { t: "Soft inquiry", d: "A credit check that does not affect your score, such as checking your own report." },
+  { t: "Standard deduction", d: "A flat amount most filers subtract from income instead of itemizing deductions." },
+  { t: "Stock", d: "A share of ownership in a company." },
+  { t: "Tax bracket", d: "An income range taxed at a specific marginal rate. Only income above each threshold gets the higher rate." },
+  { t: "Tax credit", d: "A dollar-for-dollar reduction of tax owed. More valuable than a deduction of equal size." },
+  { t: "Term", d: "The length of a loan or policy, such as a 30-year mortgage." },
+  { t: "Unsecured debt", d: "Debt with no collateral behind it, such as most credit cards. Usually carries higher rates." },
+  { t: "Variable expense", d: "A cost that changes month to month, such as groceries or fuel." },
+  { t: "Variable rate", d: "An interest rate that can rise or fall over time, changing your payment." },
+  { t: "Vesting", d: "The schedule by which employer contributions become fully yours." },
+  { t: "W-2", d: "The form showing yearly earnings and taxes withheld for an employee." },
+  { t: "W-4", d: "The form telling an employer how much tax to withhold from each paycheck." },
+  { t: "Withholding", d: "Tax removed from each paycheck and sent to the government on your behalf." },
+  { t: "Yield", d: "Income produced by an investment, expressed as a percentage of its value." }
+];
+
+function GlossaryPage({ onClose }) {
+  const [q, setQ] = useState("");
+  const list = GLOSSARY.filter(g => {
+    const s = q.trim().toLowerCase();
+    return !s || g.t.toLowerCase().includes(s) || g.d.toLowerCase().includes(s);
+  });
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, width: "100vw", height: "100vh", zIndex: 999, background: T.bg, overflowY: "auto", fontFamily: "'Inter',sans-serif", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", minHeight: "100%" }}>
+        <div style={{ position: "sticky", top: 0, zIndex: 5, background: T.bg, borderBottom: "1px solid rgba(255,255,255,0.07)", padding: "14px 18px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.11)", borderRadius: 99, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+              <Icon name="chevronLeft" size={17} color={T.textMid} />
+            </button>
+            <div>
+              <p style={{ color: T.text, fontWeight: 800, fontSize: 15, margin: 0 }}>Money Glossary</p>
+              <p style={{ color: T.textSub, fontSize: 11, margin: "1px 0 0" }}>{GLOSSARY.length} terms in plain English</p>
+            </div>
+          </div>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search a term..." style={{ ...S.input, marginBottom: 0 }} />
+        </div>
+        <div style={{ padding: "6px 18px 34px" }}>
+          {list.length === 0 && (
+            <p style={{ color: T.textSub, fontSize: 13, textAlign: "center", padding: "30px 0", lineHeight: 1.6 }}>No match for that word yet. Try a shorter search.</p>
+          )}
+          {list.map(g => (
+            <div key={g.t} style={{ padding: "15px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <p style={{ color: T.text, fontWeight: 800, fontSize: 15, margin: "0 0 5px", letterSpacing: -0.2 }}>{g.t}</p>
+              <p style={{ color: T.textMid, fontSize: 13.5, margin: 0, lineHeight: 1.65 }}>{g.d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress = () => {}, studentName = "", userId = null, onNavigate = () => {} }) {
   const [completedLessons, setCompletedLessons] = useState(initialProgress?.lessons || []);
   const [completedQuizzes, setCompletedQuizzes]  = useState(initialProgress?.quizzes || []);
@@ -8934,6 +9547,11 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
   const [dailyDone,   setDailyDone]   = useState(initialProgress?.dailyDays || []);
   const [chDone,      setChDone]      = useState(initialProgress?.challenges || []);
   const [showTipBody, setShowTipBody] = useState(false);
+  const [showGlossary, setShowGlossary] = useState(false);
+  const [revDays, setRevDays] = useState(initialProgress?.reviews || []);
+  const [revIdx, setRevIdx] = useState(0);
+  const [revPick, setRevPick] = useState(null);
+  const [revScore, setRevScore] = useState(0);
 
   const today = ffDayIndex();
   const week  = ffWeekIndex();
@@ -8951,8 +9569,33 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
 
   const saveAll = (over = {}) => onSaveProgress({
     lessons: completedLessons, quizzes: completedQuizzes, xp,
-    dailyDays: dailyDone, challenges: chDone, ...over,
+    dailyDays: dailyDone, challenges: chDone, reviews: revDays, ...over,
   });
+
+  // Spaced review: 3 questions drawn from lessons already completed, rotating daily
+  const revPool = STUDENT_LESSONS.filter(l => completedLessons.includes(l.id));
+  const revSet = revPool.length >= 3
+    ? [0, 1, 2].map(k => revPool[(today * 3 + k) % revPool.length])
+    : [];
+  const revDoneToday = revDays.includes(today);
+  const revCurrent = revSet[revIdx];
+
+  const answerReview = (choice) => {
+    if (revPick !== null || !revCurrent) return;
+    setRevPick(choice);
+    const right = choice === revCurrent.quiz.correct;
+    if (right) setRevScore(s => s + 1);
+    setTimeout(() => {
+      if (revIdx < revSet.length - 1) { setRevIdx(i => i + 1); setRevPick(null); }
+      else {
+        const nd = [...revDays, today].slice(-400);
+        const earned = 15 * (right ? revScore + 1 : revScore);
+        const nx = xp + Math.max(15, earned);
+        setRevDays(nd); setXp(nx);
+        saveAll({ reviews: nd, xp: nx });
+      }
+    }, 900);
+  };
 
   const markDaily = () => {
     if (tipDoneToday) return;
@@ -9048,8 +9691,10 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
     const nx = xp + (les?.xp || 50);
     setCompletedLessons(nl);
     setXp(nx);
-    onSaveProgress({ lessons: nl, quizzes: completedQuizzes, xp: nx, dailyDays: dailyDone, challenges: chDone });
+    onSaveProgress({ lessons: nl, quizzes: completedQuizzes, xp: nx, dailyDays: dailyDone, challenges: chDone, reviews: revDays });
   };
+
+  if (showGlossary) return <GlossaryPage onClose={() => setShowGlossary(false)} />;
 
   // Teacher view
   if (showTeacherView) return (
@@ -9090,10 +9735,10 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>{s.name}</p>
-                  <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>{s.lessons}/24 lessons &middot; {s.xp} XP</p>
+                  <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>{s.lessons}/48 lessons &middot; {s.xp} XP</p>
                 </div>
                 <div style={{ width: 74 }}>
-                  <ProgressBar pct={Math.round((s.lessons / 24) * 100)} color={T.purple} height={5} />
+                  <ProgressBar pct={Math.round((s.lessons / 48) * 100)} color={T.purple} height={5} />
                 </div>
               </div>
             ))}
@@ -9238,7 +9883,7 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
             })}
           </div>
           {!quizSubmitted
-            ? <button onClick={() => { if (quizAnswer !== null) { setQuizSubmitted(true); if (quizAnswer === lesson.quiz.correct && !completedQuizzes.includes(lesson.id)) { const nq = [...completedQuizzes, lesson.id]; const nx = xp + Math.round(lesson.xp * 0.5); setCompletedQuizzes(nq); setXp(nx); onSaveProgress({ lessons: completedLessons, quizzes: nq, xp: nx, dailyDays: dailyDone, challenges: chDone }); } } }} style={{ ...S.primaryBtn(), opacity: quizAnswer !== null ? 1 : 0.4 }}>Check My Answer</button>
+            ? <button onClick={() => { if (quizAnswer !== null) { setQuizSubmitted(true); if (quizAnswer === lesson.quiz.correct && !completedQuizzes.includes(lesson.id)) { const nq = [...completedQuizzes, lesson.id]; const nx = xp + Math.round(lesson.xp * 0.5); setCompletedQuizzes(nq); setXp(nx); onSaveProgress({ lessons: completedLessons, quizzes: nq, xp: nx, dailyDays: dailyDone, challenges: chDone, reviews: revDays }); } } }} style={{ ...S.primaryBtn(), opacity: quizAnswer !== null ? 1 : 0.4 }}>Check My Answer</button>
             : isPassed
               ? <div style={{ background: "rgba(0,210,160,0.1)", border: "1px solid rgba(0,210,160,0.25)", borderRadius: 10, padding: 14, textAlign: "center" }}>
                   <p style={{ color: T.green, fontWeight: 800, fontSize: 16, margin: "0 0 4px" }}>Correct! +{Math.round(lesson.xp * 0.5)} XP</p>
@@ -9318,6 +9963,51 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
         </div>
       </div>
 
+      {/* Spaced review */}
+      {revSet.length === 3 && (
+        <div style={S.card}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <SectionLabel>Keep It Sharp</SectionLabel>
+            <span style={{ background: revDoneToday ? "rgba(0,210,160,0.12)" : "rgba(124,92,252,0.12)", color: revDoneToday ? T.green : T.purple, border: `1px solid ${revDoneToday ? "rgba(0,210,160,0.3)" : "rgba(124,92,252,0.3)"}`, fontSize: 10, fontWeight: 800, padding: "2px 9px", borderRadius: 99 }}>{revDoneToday ? "Done today" : "3 questions"}</span>
+          </div>
+          {revDoneToday ? (
+            <p style={{ color: T.textSub, fontSize: 13, margin: 0, lineHeight: 1.6 }}>Review complete. Three more questions from your finished lessons unlock tomorrow — this is how the material sticks for good.</p>
+          ) : (
+            <>
+              <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.5 }}>Question {revIdx + 1} of 3, pulled from lessons you already finished.</p>
+              <p style={{ color: T.text, fontWeight: 700, fontSize: 15, margin: "0 0 12px", lineHeight: 1.5 }}>{revCurrent.quiz.q}</p>
+              {revCurrent.quiz.opts.map((o, i) => {
+                const isRight = i === revCurrent.quiz.correct;
+                const picked = revPick === i;
+                const show = revPick !== null;
+                return (
+                  <button key={i} onClick={() => answerReview(i)} style={{ width: "100%", textAlign: "left", background: show && isRight ? "rgba(0,210,160,0.13)" : show && picked ? "rgba(255,90,110,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${show && isRight ? "rgba(0,210,160,0.4)" : show && picked ? "rgba(255,90,110,0.4)" : "rgba(255,255,255,0.09)"}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, cursor: show ? "default" : "pointer", color: T.text, fontSize: 13.5, fontFamily: "'Inter',sans-serif", fontWeight: 500, transition: "all 0.2s" }}>
+                    {o}
+                  </button>
+                );
+              })}
+              {revPick !== null && (
+                <p style={{ color: revPick === revCurrent.quiz.correct ? T.green : T.gold, fontSize: 12, margin: "6px 0 0", fontWeight: 600 }}>
+                  {revPick === revCurrent.quiz.correct ? "Correct." : `Answer: ${revCurrent.quiz.opts[revCurrent.quiz.correct]}`}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Glossary */}
+      <button onClick={() => setShowGlossary(true)} style={{ ...S.card, width: "100%", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", fontFamily: "'Inter',sans-serif" }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(79,172,254,0.14)", border: "1px solid rgba(79,172,254,0.32)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Icon name="book" size={18} color={T.blue} strokeWidth={1.8} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <p style={{ color: T.text, fontWeight: 700, fontSize: 15, margin: 0 }}>Money Glossary</p>
+          <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>{GLOSSARY.length} terms in plain English, searchable</p>
+        </div>
+        <Icon name="chevronLeft" size={14} color={T.textSub} style={{ transform: "rotate(180deg)" }} />
+      </button>
+
       {/* Challenge of the week */}
       <div style={S.card}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -9368,10 +10058,10 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <SectionLabel>Money Mastery Roadmap</SectionLabel>
           <span style={{ background: "rgba(124,92,252,0.12)", color: T.purple, border: "1px solid rgba(124,92,252,0.3)", fontSize: 10, fontWeight: 800, padding: "2px 9px", borderRadius: 99 }}>
-            {SCHOOL_ROADMAP.filter(m => m.type === "unit" ? STUDENT_LESSONS.filter(l => l.unit === m.unitId).every(l => completedLessons.includes(l.id)) : doneCount === totalLessons).length}/8 milestones
+            {SCHOOL_ROADMAP.filter(m => STUDENT_LESSONS.filter(l => l.unit === m.unitId).every(l => completedLessons.includes(l.id))).length}/8 units
           </span>
         </div>
-        <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.5 }}>Basics to freedom. Finish all 4 units to unlock the advanced track — powered by the real app tools.</p>
+        <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.5 }}>Eight units, forty-eight lessons, basics to financial independence. Each unit unlocks the next.</p>
         {SCHOOL_ROADMAP.map((m, i) => {
           const isLast = i === SCHOOL_ROADMAP.length - 1;
           let status, color, icon;
@@ -9470,7 +10160,7 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
       </div>
 
       {/* Curriculum by unit */}
-      <SectionLabel>The Curriculum — 4 Units, 24 Lessons</SectionLabel>
+      <SectionLabel>The Curriculum — 8 Units, 48 Lessons</SectionLabel>
       {SCHOOL_UNITS.map(unit => {
         const unitLessons = STUDENT_LESSONS.filter(l => l.unit === unit.id);
         const unitDone = unitLessons.filter(l => completedLessons.includes(l.id)).length;
@@ -9862,7 +10552,7 @@ export default function App() {
 
       // Load school progress
       const sRows = await dbRows("school_progress", uid);
-      if (sRows[0]) setDbSchool({ lessons: sRows[0].lessons || [], quizzes: sRows[0].quizzes || [], xp: sRows[0].xp || 0, dailyDays: sRows[0].daily_days || [], challenges: sRows[0].challenges || [] });
+      if (sRows[0]) setDbSchool({ lessons: sRows[0].lessons || [], quizzes: sRows[0].quizzes || [], xp: sRows[0].xp || 0, dailyDays: sRows[0].daily_days || [], challenges: sRows[0].challenges || [], reviews: sRows[0].reviews || [] });
 
     } catch (err) {
       console.error("Error loading user data:", err);
@@ -9927,13 +10617,27 @@ export default function App() {
   const removeAssetDb = (id) => { if (authUser) dbDelete("assets", id, authUser.id); };
   const persistLiab   = (l) => { if (!authUser) return; dbUpsert("liabilities", { id: l.id, user_id: authUser.id, name: l.name, amount: l.amount, rate: l.rate, cat: l.cat, icon: l.icon }); };
   const removeLiabDb  = (id) => { if (authUser) dbDelete("liabilities", id, authUser.id); };
+  const deleteAccountData = async () => {
+    if (!authUser) return;
+    const uid = authUser.id;
+    const hdrs = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${sb._token() || SUPABASE_KEY}` };
+    const tables = ["goals", "bills", "assets", "liabilities", "check_ins", "school_progress", "class_members", "goal_transactions", "hustle_entries", "notification_reads", "subscriptions", "bill_payments"];
+    await Promise.all(tables.map(t =>
+      fetch(`${SUPABASE_URL}/rest/v1/${t}?user_id=eq.${uid}`, { method: "DELETE", headers: hdrs }).catch(() => {})
+    ));
+    await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, { method: "DELETE", headers: hdrs }).catch(() => {});
+    await sb.signOut();
+    setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0);
+    setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setAuthReady(true);
+  };
+
   const persistSchool = (p) => {
     if (!authUser) return;
     setDbSchool(p);
     fetch(`${SUPABASE_URL}/rest/v1/school_progress?on_conflict=user_id`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": `Bearer ${sb._token() || SUPABASE_KEY}`, "Prefer": "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify({ user_id: authUser.id, lessons: p.lessons, quizzes: p.quizzes, xp: p.xp, daily_days: p.dailyDays || [], challenges: p.challenges || [] }),
+      body: JSON.stringify({ user_id: authUser.id, lessons: p.lessons, quizzes: p.quizzes, xp: p.xp, daily_days: p.dailyDays || [], challenges: p.challenges || [], reviews: p.reviews || [] }),
     }).catch(e => console.error("school save", e));
   };
 
@@ -10447,7 +11151,7 @@ export default function App() {
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
       {tab === "deals" && <div style={{ paddingTop: 16 }}><DealsTab /></div>}
-      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setAuthReady(true); }} /></div>}
+      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setAuthReady(true); }} /></div>}
 
       {/* Bottom Nav — primary 6 tabs + More */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(8,9,26,0.97)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(123,110,246,0.15)", zIndex: 100, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)" }}>
