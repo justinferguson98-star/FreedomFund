@@ -1115,233 +1115,6 @@ function Onboarding({ onComplete }) {
     </div>
   );
 
-  // Step 3.5: Bank Connection
-  if (step === 4) {
-    const MOCK_BANKS = [
-      { id: "chase",    name: "Chase",            logo: "C",  color: "#0A6EBD", accounts: 2 },
-      { id: "bofa",     name: "Bank of America",  logo: "B",  color: "#E31837", accounts: 3 },
-      { id: "wells",    name: "Wells Fargo",      logo: "W",  color: "#CC0000", accounts: 2 },
-      { id: "citi",     name: "Citibank",         logo: "C",  color: "#003B70", accounts: 1 },
-      { id: "capital",  name: "Capital One",      logo: "C",  color: "#004977", accounts: 2 },
-      { id: "usbank",   name: "US Bank",          logo: "U",  color: "#003087", accounts: 2 },
-      { id: "td",       name: "TD Bank",          logo: "T",  color: "#00B140", accounts: 1 },
-      { id: "ally",     name: "Ally Bank",        logo: "A",  color: "#7B2D8B", accounts: 1 },
-      { id: "other",    name: "Search for my bank", logo: "+", color: T.textSub, accounts: 0 },
-    ];
-
-    const MOCK_ANALYSIS = {
-      monthlyIncoming: 4840,
-      monthlyOutgoing: 3920,
-      topCategories: [
-        { name: "Housing / Rent",   amount: 1450, pct: 37, color: T.red    },
-        { name: "Groceries",        amount: 480,  pct: 12, color: T.green  },
-        { name: "Dining Out",       amount: 380,  pct: 10, color: T.gold   },
-        { name: "Subscriptions",    amount: 210,  pct: 5,  color: T.purple },
-        { name: "Gas / Transport",  amount: 190,  pct: 5,  color: T.accent },
-        { name: "Shopping",         amount: 340,  pct: 9,  color: T.textMid},
-        { name: "Other",            amount: 870,  pct: 22, color: "#475569" },
-      ],
-      recentTransactions: [
-        { date: "Today",    desc: "Whole Foods",         amount: -68.42,  cat: "Groceries"  },
-        { date: "Yesterday",desc: "Netflix",             amount: -15.99,  cat: "Subscriptions" },
-        { date: "Yesterday",desc: "Shell Gas Station",   amount: -54.10,  cat: "Transport"  },
-        { date: "Mon",      desc: "Direct Deposit",      amount: +2420.00, cat: "Income"    },
-        { date: "Mon",      desc: "Chipotle",            amount: -14.87,  cat: "Dining"     },
-        { date: "Sun",      desc: "Amazon",              amount: -89.99,  cat: "Shopping"   },
-        { date: "Sat",      desc: "Target",              amount: -142.33, cat: "Shopping"   },
-        { date: "Fri",      desc: "Uber Eats",           amount: -38.50,  cat: "Dining"     },
-      ],
-      insights: [
-        { icon: "fire",    color: T.red,    title: "Dining out is high", body: "You spent $380 dining out last month — that is 10% of your take-home. The national average is 5%. Cutting this in half saves $190/mo or $2,280/yr." },
-        { icon: "zap",     color: T.gold,   title: "Subscription creep", body: "You have $210/mo in subscriptions across multiple services. Many people forget what they are paying for. Review and cancel what you do not actively use." },
-        { icon: "trendUp", color: T.green,  title: "Good news: you spend less than you earn", body: "You have $920/mo left over after expenses. The goal is to make every one of those dollars work for you instead of drifting into random spending." },
-      ],
-    };
-
-    const simulateConnect = () => {
-      setBankStep("connecting");
-      setTimeout(() => { setBankData(MOCK_ANALYSIS); setBankStep("analysis"); setBankConnected(true); }, 2800);
-    };
-
-    return (
-      <div style={{ minHeight: "100vh", background: T.bg, maxWidth: 420, margin: "0 auto", display: "flex", flexDirection: "column" }}>
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${T.accent}, ${T.purple})`, maxWidth: 420 }} />
-
-        {bankStep === "select" && (
-          <div style={{ padding: "52px 20px 40px", display: "flex", flexDirection: "column", flex: 1 }}>
-            <StepHeader icon="wallet" title="Connect your bank" subtitle="See exactly where your money is going — automatically. No more guessing. This is where the truth lives." current={3} total={11} />
-
-            <div style={{ background: T.accentLo, border: `1px solid ${T.accent}25`, borderRadius: 10, padding: "12px 14px", marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <Icon name="lock" size={16} color={T.accent} />
-                <div>
-                  <p style={{ color: T.accent, fontSize: 12, fontWeight: 700, margin: "0 0 3px" }}>Bank-level 256-bit encryption</p>
-                  <p style={{ color: T.textSub, fontSize: 11, margin: 0, lineHeight: 1.5 }}>Read-only access. We can see your transactions but can never move your money. Powered by Plaid — used by Venmo, Robinhood, and 8,000+ apps.</p>
-                </div>
-              </div>
-            </div>
-
-            <p style={{ color: T.textSub, fontSize: 11, margin: "0 0 12px", textTransform: "uppercase", letterSpacing: 1 }}>Select your bank</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
-              {MOCK_BANKS.map(bank => (
-                <button key={bank.id} onClick={() => setSelectedBank(bank)} style={{ background: selectedBank?.id === bank.id ? T.accentLo : T.card, border: selectedBank?.id === bank.id ? `1px solid ${T.accent}50` : `1px solid ${T.border}`, borderRadius: 10, padding: "14px 8px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 9, background: `${bank.color}22`, border: `1px solid ${bank.color}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: bank.color }}>{bank.logo}</div>
-                  <span style={{ color: selectedBank?.id === bank.id ? T.accent : T.textSub, fontSize: 10, fontWeight: 600, textAlign: "center", lineHeight: 1.3 }}>{bank.name}</span>
-                </button>
-              ))}
-            </div>
-
-            <button onClick={() => selectedBank && setBankStep("credentials")} style={{ ...S.primaryBtn(), opacity: selectedBank ? 1 : 0.35, marginBottom: 10 }}>
-              Connect {selectedBank ? selectedBank.name : "Bank"}
-            </button>
-            <button onClick={() => goStep(5)} style={{ ...S.ghostBtn }}>Skip — I will do this later</button>
-          </div>
-        )}
-
-        {bankStep === "credentials" && (
-          <div style={{ padding: "52px 20px 40px", flex: 1, display: "flex", flexDirection: "column" }}>
-            <button onClick={() => setBankStep("select")} style={{ background: "none", border: "none", color: T.textSub, cursor: "pointer", marginBottom: 20, display: "flex", alignItems: "center", gap: 4, padding: 0, fontSize: 13 }}>
-              <Icon name="chevronLeft" size={16} color={T.textSub} />Back
-            </button>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 11, background: `${selectedBank.color}22`, border: `1px solid ${selectedBank.color}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: selectedBank.color }}>{selectedBank.logo}</div>
-              <div>
-                <h3 style={{ color: T.text, fontSize: 17, fontWeight: 700, margin: 0 }}>Sign in to {selectedBank.name}</h3>
-                <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Encrypted connection via Plaid</p>
-              </div>
-            </div>
-            <div style={{ ...S.card, marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <Icon name="lock" size={14} color={T.green} />
-                <span style={{ color: T.green, fontSize: 12, fontWeight: 600 }}>Secure read-only access</span>
-              </div>
-              <label style={S.label}>Username / User ID</label>
-              <input placeholder="Enter your bank username" style={{ ...S.input, marginBottom: 12 }} />
-              <label style={S.label}>Password</label>
-              <input type="password" placeholder="Enter your password" style={{ ...S.input, marginBottom: 0 }} />
-            </div>
-            <div style={{ background: `${T.green}0a`, border: `1px solid ${T.green}25`, borderRadius: 9, padding: 12, marginBottom: 20 }}>
-              <p style={{ color: T.green, fontSize: 12, margin: 0, lineHeight: 1.5 }}>Your credentials go directly to {selectedBank.name} via Plaid. Freedom Funds never sees or stores your username or password.</p>
-            </div>
-            <button onClick={simulateConnect} style={S.primaryBtn()}>Connect Account Securely</button>
-          </div>
-        )}
-
-        {bankStep === "connecting" && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 32px", textAlign: "center" }}>
-            <div style={{ width: 72, height: 72, borderRadius: 20, background: T.accentLo, border: `1px solid ${T.accent}40`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, animation: "pulse 1.5s infinite" }}>
-              <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
-              <Icon name="repeat" size={32} color={T.accent} />
-            </div>
-            <h3 style={{ color: T.text, fontSize: 20, fontWeight: 700, margin: "0 0 10px" }}>Analyzing your finances</h3>
-            <p style={{ color: T.textSub, fontSize: 14, margin: "0 0 28px", lineHeight: 1.6 }}>Securely fetching your last 90 days of transactions...</p>
-            {["Connecting to bank", "Fetching transactions", "Categorizing spending", "Building your profile"].map((s, i) => (
-              <div key={s} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, opacity: 1 }}>
-                <div style={{ width: 18, height: 18, borderRadius: "50%", background: T.accentLo, border: `1px solid ${T.accent}50`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Icon name="check" size={10} color={T.accent} />
-                </div>
-                <span style={{ color: T.textMid, fontSize: 13 }}>{s}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {bankStep === "analysis" && bankData && (
-          <div style={{ padding: "52px 20px 40px", overflowY: "auto", flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: T.greenLo, border: `1px solid ${T.green}40`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Icon name="check" size={15} color={T.green} />
-              </div>
-              <div>
-                <h3 style={{ color: T.text, fontSize: 18, fontWeight: 700, margin: 0 }}>{selectedBank.name} connected</h3>
-                <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Last 90 days analyzed</p>
-              </div>
-            </div>
-
-            <p style={{ color: T.red, fontSize: 14, fontWeight: 700, margin: "20px 0 6px", lineHeight: 1.5 }}>Here is the truth about your spending, {name}. No sugar-coating.</p>
-
-            {/* In vs Out */}
-            <div style={{ ...S.card, marginBottom: 12 }}>
-              <SectionLabel>Monthly Cash Flow</SectionLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-                <div style={{ background: `${T.green}0a`, border: `1px solid ${T.green}25`, borderRadius: 9, padding: "12px 14px" }}>
-                  <p style={{ color: T.textSub, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.8, margin: "0 0 4px" }}>Coming In</p>
-                  <p style={{ color: T.green, fontWeight: 800, fontSize: 22, margin: 0 }}>${bankData.monthlyIncoming.toLocaleString()}</p>
-                </div>
-                <div style={{ background: `${T.red}0a`, border: `1px solid ${T.red}25`, borderRadius: 9, padding: "12px 14px" }}>
-                  <p style={{ color: T.textSub, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.8, margin: "0 0 4px" }}>Going Out</p>
-                  <p style={{ color: T.red, fontWeight: 800, fontSize: 22, margin: 0 }}>${bankData.monthlyOutgoing.toLocaleString()}</p>
-                </div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: `1px solid ${T.border}` }}>
-                <span style={{ color: T.textMid, fontSize: 13, fontWeight: 600 }}>Left over</span>
-                <span style={{ color: T.green, fontSize: 16, fontWeight: 800 }}>+${(bankData.monthlyIncoming - bankData.monthlyOutgoing).toLocaleString()}</span>
-              </div>
-            </div>
-
-            {/* Spending breakdown */}
-            <div style={{ ...S.card, marginBottom: 12 }}>
-              <SectionLabel>Where Your Money Goes</SectionLabel>
-              {bankData.topCategories.map(cat => (
-                <div key={cat.name} style={{ marginBottom: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ color: T.textMid, fontSize: 12 }}>{cat.name}</span>
-                    <div style={{ display: "flex", gap: 10 }}>
-                      <span style={{ color: cat.color, fontSize: 12, fontWeight: 700 }}>${cat.amount}</span>
-                      <span style={{ color: T.textSub, fontSize: 11, width: 28, textAlign: "right" }}>{cat.pct}%</span>
-                    </div>
-                  </div>
-                  <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 99, height: 5 }}>
-                    <div style={{ width: `${cat.pct}%`, height: "100%", background: cat.color, borderRadius: 99 }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Insights */}
-            <div style={{ ...S.card, marginBottom: 12 }}>
-              <SectionLabel>Reality Check</SectionLabel>
-              {bankData.insights.map(ins => (
-                <div key={ins.title} style={{ display: "flex", gap: 12, marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${T.border}` }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: `${ins.color}15`, border: `1px solid ${ins.color}30`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
-                    <Icon name={ins.icon} size={15} color={ins.color} />
-                  </div>
-                  <div>
-                    <p style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: "0 0 4px" }}>{ins.title}</p>
-                    <p style={{ color: T.textSub, fontSize: 12, margin: 0, lineHeight: 1.6 }}>{ins.body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Recent transactions */}
-            <div style={{ ...S.card, marginBottom: 20 }}>
-              <SectionLabel>Recent Transactions</SectionLabel>
-              {bankData.recentTransactions.map((tx, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < bankData.recentTransactions.length - 1 ? `1px solid ${T.border}` : "none" }}>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: tx.amount > 0 ? T.green : T.textSub, flexShrink: 0 }} />
-                    <div>
-                      <p style={{ color: T.textMid, fontSize: 13, fontWeight: 500, margin: 0 }}>{tx.desc}</p>
-                      <p style={{ color: T.textSub, fontSize: 10, margin: "1px 0 0" }}>{tx.date} &middot; {tx.cat}</p>
-                    </div>
-                  </div>
-                  <span style={{ color: tx.amount > 0 ? T.green : T.text, fontSize: 13, fontWeight: 700 }}>
-                    {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <button onClick={() => goStep(5)} style={{ ...S.primaryBtn(), marginBottom: 10 }}>
-              Build My Budget Plan
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   // Step 5: Location
   if (step === 4) return (
     <div style={{ minHeight: "100vh", background: T.bg, padding: "52px 24px 40px", maxWidth: 420, margin: "0 auto", display: "flex", flexDirection: "column" }}>
@@ -3039,6 +2812,124 @@ function VestModal({ inv, onClose, onConfirm }) {
   );
 }
 
+
+// ── Holdings tracker (manual today, shaped for auto-sync later) ───────────────
+function HoldingsTracker({ holdings, onAdd, onRemove }) {
+  const [open, setOpen] = useState(false);
+  const [sym, setSym]   = useState("");
+  const [nm, setNm]     = useState("");
+  const [sh, setSh]     = useState("");
+  const [cost, setCost] = useState("");
+  const [price, setPrice] = useState("");
+
+  const totals = holdings.reduce((a, h) => {
+    const val = (Number(h.shares) || 0) * (Number(h.price) || 0);
+    const basis = (Number(h.shares) || 0) * (Number(h.cost) || 0);
+    return { val: a.val + val, basis: a.basis + basis };
+  }, { val: 0, basis: 0 });
+  const gain = totals.val - totals.basis;
+  const gainPct = totals.basis > 0 ? (gain / totals.basis) * 100 : 0;
+
+  const save = () => {
+    if (!sym.trim() || !sh) return;
+    onAdd({
+      id: Date.now(),
+      symbol: sym.trim().toUpperCase(),
+      name: nm.trim() || sym.trim().toUpperCase(),
+      shares: Number(sh) || 0,
+      cost: Number(cost) || 0,
+      price: Number(price) || Number(cost) || 0,
+    });
+    setSym(""); setNm(""); setSh(""); setCost(""); setPrice(""); setOpen(false);
+  };
+
+  return (
+    <div style={S.card}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 4 }}>
+        <SectionLabel>My Holdings</SectionLabel>
+        {holdings.length > 0 && (
+          <span style={{ background: gain >= 0 ? "rgba(0,210,160,0.12)" : "rgba(255,90,110,0.12)", color: gain >= 0 ? T.green : T.red, border: `1px solid ${gain >= 0 ? "rgba(0,210,160,0.3)" : "rgba(255,90,110,0.3)"}`, fontSize: 10, fontWeight: 800, padding: "2px 9px", borderRadius: 99 }}>
+            {gain >= 0 ? "+" : ""}{gainPct.toFixed(1)}%
+          </span>
+        )}
+      </div>
+
+      {holdings.length === 0 && !open && (
+        <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.6 }}>
+          Track what you own in one place. Enter your positions from any brokerage app and see your total value, gain, and mix here.
+        </p>
+      )}
+
+      {holdings.length > 0 && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, margin: "8px 0 14px" }}>
+            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 12, padding: 12 }}>
+              <p style={{ color: T.textSub, fontSize: 10, margin: "0 0 3px", fontWeight: 600, letterSpacing: 0.5 }}>TOTAL VALUE</p>
+              <p style={{ color: T.text, fontWeight: 900, fontSize: 19, margin: 0 }}>${Math.round(totals.val).toLocaleString()}</p>
+            </div>
+            <div style={{ background: gain >= 0 ? "rgba(0,210,160,0.08)" : "rgba(255,90,110,0.08)", border: `1px solid ${gain >= 0 ? "rgba(0,210,160,0.25)" : "rgba(255,90,110,0.25)"}`, borderRadius: 12, padding: 12 }}>
+              <p style={{ color: T.textSub, fontSize: 10, margin: "0 0 3px", fontWeight: 600, letterSpacing: 0.5 }}>TOTAL GAIN</p>
+              <p style={{ color: gain >= 0 ? T.green : T.red, fontWeight: 900, fontSize: 19, margin: 0 }}>{gain >= 0 ? "+" : "-"}${Math.abs(Math.round(gain)).toLocaleString()}</p>
+            </div>
+          </div>
+
+          {holdings.map(h => {
+            const val = (Number(h.shares) || 0) * (Number(h.price) || 0);
+            const basis = (Number(h.shares) || 0) * (Number(h.cost) || 0);
+            const g = val - basis;
+            const gp = basis > 0 ? (g / basis) * 100 : 0;
+            const share = totals.val > 0 ? (val / totals.val) * 100 : 0;
+            return (
+              <div key={h.id} style={{ padding: "11px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: "rgba(124,92,252,0.14)", border: "1px solid rgba(124,92,252,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <span style={{ color: T.purple, fontWeight: 800, fontSize: 11 }}>{h.symbol.slice(0, 4)}</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>{h.name}</p>
+                    <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>{h.shares} shares · {share.toFixed(0)}% of portfolio</p>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <p style={{ color: T.text, fontWeight: 800, fontSize: 14, margin: 0 }}>${Math.round(val).toLocaleString()}</p>
+                    <p style={{ color: g >= 0 ? T.green : T.red, fontSize: 11, fontWeight: 700, margin: "2px 0 0" }}>{g >= 0 ? "+" : ""}{gp.toFixed(1)}%</p>
+                  </div>
+                  <button onClick={() => onRemove(h.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, opacity: 0.5, flexShrink: 0 }}>
+                    <Icon name="x" size={13} color={T.red} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {open ? (
+        <div style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <input value={sym} onChange={e => setSym(e.target.value.toUpperCase())} placeholder="TICKER" maxLength={6} style={{ ...S.input, flex: "0 0 110px", textTransform: "uppercase", fontWeight: 700, letterSpacing: 1 }} />
+            <input value={nm} onChange={e => setNm(e.target.value)} placeholder="Name (optional)" style={{ ...S.input, flex: 1, minWidth: 0 }} />
+          </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <NumField label="Shares" value={sh} onChange={setSh} max={100000000} />
+            <NumField label="Cost per share" value={cost} onChange={setCost} prefix="$" max={10000000} />
+            <NumField label="Price now" value={price} onChange={setPrice} prefix="$" max={10000000} hint="Check your brokerage app for today price" />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setOpen(false)} style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 999, padding: "12px 0", cursor: "pointer", color: T.textMid, fontWeight: 600, fontSize: 13, fontFamily: "'Inter',sans-serif" }}>Cancel</button>
+            <button onClick={save} style={{ flex: 1, ...S.primaryBtn() }}>Add Holding</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setOpen(true)} style={{ ...S.ghostBtn, marginTop: holdings.length ? 12 : 0 }}>Add a Holding</button>
+      )}
+
+      <p style={{ color: T.textSub, fontSize: 10, margin: "12px 0 0", lineHeight: 1.55 }}>
+        Prices are the ones you enter, so update them when you want a fresh total. Automatic syncing with brokerages is not available yet.
+      </p>
+    </div>
+  );
+}
+
 function InvestTab() {
   const [activeCat, setActiveCat] = useState("all");
   const [detailInv, setDetailInv] = useState(null);
@@ -4074,7 +3965,7 @@ function CategorySpendCards({ bills }) {
   const safeIdx = Math.min(idx, groups.length - 1);
   const g = groups[safeIdx];
   const grandTotal = groups.reduce((s, c) => s + c.total, 0);
-  const pct = Math.round((g.total / grandTotal) * 100);
+  const pct = grandTotal > 0 ? Math.round((g.total / grandTotal) * 100) : 0;
   const go = d => setIdx(i => (i + d + groups.length) % groups.length);
 
   return (
@@ -5088,11 +4979,7 @@ function NetWorthTab({ goals, profile, initialAssets = [], initialLiabs = [], on
 
 // ── Debt Payoff Planner ───────────────────────────────────────────────────────
 function DebtPayoffTab() {
-  const [debts, setDebts] = useState([
-    { id: 1, name: "Credit Card",   balance: 1800,  rate: 21.9, minPayment: 45  },
-    { id: 2, name: "Car Loan",      balance: 12400, rate: 5.9,  minPayment: 380 },
-    { id: 3, name: "Student Loan",  balance: 28000, rate: 4.5,  minPayment: 210 },
-  ]);
+  const [debts, setDebts] = useState([]);
   const [method, setMethod] = useState("avalanche"); // avalanche | snowball
   const [extra, setExtra] = useState("100");
   const [showAdd, setShowAdd] = useState(false);
@@ -7820,17 +7707,17 @@ const INVEST_LEVELS = [
 ];
 
 function InvestEducationPath({ onTabChange }) {
-  const [completedLessons, setCompletedLessons] = useState(["1a", "1b", "2a"]);
-  const [completedQuizzes, setCompletedQuizzes] = useState(["1a", "1b"]);
+  const [completedLessons, setCompletedLessons] = useState([]);
+  const [completedQuizzes, setCompletedQuizzes] = useState([]);
   const [activeLesson, setActiveLesson] = useState(null);
   const [activeLevel, setActiveLevel] = useState(null);
   const [quizAnswer, setQuizAnswer] = useState(null);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [xp, setXp] = useState(350);
+  const [xp, setXp] = useState(0);
 
   const totalLessons = INVEST_LEVELS.reduce((a, l) => a + l.lessons.length, 0);
   const completedCount = completedLessons.length;
-  const overallPct = Math.round((completedCount / totalLessons) * 100);
+  const overallPct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
   const isLevelUnlocked = (level) => {
     if (level.unlocked) return true;
@@ -8112,11 +7999,7 @@ function InvestEducationPath({ onTabChange }) {
 
 // ── Side Hustle Income Tracker ───────────────────────────────────────────────
 function SideHustleTab({ profile }) {
-  const [hustles, setHustles] = useState([
-    { id: 1, name: "Freelance Design", category: "Freelance", color: T.purple, icon: "zap",        entries: [{ date: "Jun 15", amount: 850, note: "Logo project" }, { date: "Jun 8", amount: 400, note: "Business cards" }, { date: "May 28", amount: 1200, note: "Website redesign" }] },
-    { id: 2, name: "Uber Driver",      category: "Gig Work",  color: T.orange, icon: "send",       entries: [{ date: "Jun 18", amount: 143, note: "Weekend shift" }, { date: "Jun 11", amount: 98,  note: "Evening hours"  }, { date: "Jun 4",  amount: 210, note: "Airport runs"   }] },
-    { id: 3, name: "Etsy Shop",        category: "E-Commerce",color: T.teal,   icon: "dollarSign", entries: [{ date: "Jun 16", amount: 67,  note: "3 candles sold" }, { date: "Jun 9", amount: 134, note: "6 candles + card" }] },
-  ]);
+  const [hustles, setHustles] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCat,  setNewCat]  = useState("Freelance");
@@ -9340,14 +9223,46 @@ const PARENT_MISSIONS = [
 
 
 // ── School simulators ─────────────────────────────────────────────────────────
+
+// ── Numeric input used by the simulators (typed, not capped by a slider) ─────
+function NumField({ label, value, onChange, prefix, suffix, max, hint }) {
+  return (
+    <div style={{ flex: "1 1 140px", minWidth: 0 }}>
+      <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>{label}</label>
+      <div style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.11)", borderRadius: 12, padding: "0 12px" }}>
+        {prefix && <span style={{ color: T.textSub, fontSize: 15, fontWeight: 600, marginRight: 4 }}>{prefix}</span>}
+        <input
+          type="number"
+          inputMode="decimal"
+          value={value}
+          min="0"
+          onChange={e => {
+            const raw = e.target.value;
+            if (raw === "") { onChange(""); return; }
+            let n = parseFloat(raw);
+            if (isNaN(n) || n < 0) n = 0;
+            if (max && n > max) n = max;
+            onChange(n);
+          }}
+          style={{ flex: 1, minWidth: 0, background: "none", border: "none", outline: "none", color: T.text, fontSize: 17, fontWeight: 700, fontFamily: "'Inter',sans-serif", padding: "12px 0" }}
+        />
+        {suffix && <span style={{ color: T.textSub, fontSize: 13, fontWeight: 600, marginLeft: 4 }}>{suffix}</span>}
+      </div>
+      {hint && <p style={{ color: T.textSub, fontSize: 10, margin: "5px 0 0", lineHeight: 1.4 }}>{hint}</p>}
+    </div>
+  );
+}
+
 function PaycheckSim() {
   const [wage, setWage] = useState(15);
   const [hrs,  setHrs]  = useState(20);
 
-  const baseHrs = Math.min(hrs, 40);
-  const otHrs   = Math.max(0, hrs - 40);
-  const weeklyBase = baseHrs * wage;
-  const weeklyOt   = otHrs * wage * 1.5;
+  const w = Number(wage) || 0;
+  const h = Number(hrs) || 0;
+  const baseHrs = Math.min(h, 40);
+  const otHrs   = Math.max(0, h - 40);
+  const weeklyBase = baseHrs * w;
+  const weeklyOt   = otHrs * w * 1.5;
   const gross = (weeklyBase + weeklyOt) * 4.33;
   const otMonthly = weeklyOt * 4.33;
 
@@ -9367,27 +9282,21 @@ function PaycheckSim() {
   return (
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 130px", minWidth: 0 }}>
-          <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Hourly wage: ${wage}</label>
-          <input type="range" min="8" max="100" step="1" value={wage} onChange={e => setWage(Number(e.target.value))} style={{ width: "100%", accentColor: T.purple }} />
-        </div>
-        <div style={{ flex: "1 1 130px", minWidth: 0 }}>
-          <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Hours per week: {hrs}{otHrs > 0 ? ` (${otHrs} OT)` : ""}</label>
-          <input type="range" min="5" max="80" step="1" value={hrs} onChange={e => setHrs(Number(e.target.value))} style={{ width: "100%", accentColor: otHrs > 0 ? T.gold : T.purple }} />
-        </div>
+        <NumField label="Hourly wage" value={wage} onChange={setWage} prefix="$" max={100000} />
+        <NumField label="Hours per week" value={hrs} onChange={setHrs} suffix="hrs" max={168} hint={otHrs > 0 ? `${otHrs} of these are overtime` : "Over 40 triggers overtime"} />
       </div>
 
       {otHrs > 0 && (
         <div style={{ background: "rgba(245,166,35,0.09)", border: "1px solid rgba(245,166,35,0.3)", borderRadius: 12, padding: "10px 13px", marginBottom: 12 }}>
           <p style={{ color: T.gold, fontSize: 12, fontWeight: 700, margin: "0 0 3px" }}>Overtime kicked in</p>
           <p style={{ color: T.textMid, fontSize: 12, margin: 0, lineHeight: 1.55 }}>
-            Hours past 40 pay time and a half — ${(wage * 1.5).toFixed(2)} an hour. That is ${otMonthly.toFixed(0)} extra a month before taxes.
+            Hours past 40 pay time and a half — ${(w * 1.5).toFixed(2)} an hour. That is ${otMonthly.toFixed(0)} extra a month before taxes.
           </p>
         </div>
       )}
 
-      <Row label="Base pay (monthly)" val={weeklyBase * 4.33} note={`${baseHrs} hrs a week at $${wage}`} />
-      {otHrs > 0 && <Row label="Overtime pay (monthly)" val={otMonthly} color={T.gold} note={`${otHrs} hrs a week at $${(wage * 1.5).toFixed(2)}`} />}
+      <Row label="Base pay (monthly)" val={weeklyBase * 4.33} note={`${baseHrs} hrs a week at $${w}`} />
+      {otHrs > 0 && <Row label="Overtime pay (monthly)" val={otMonthly} color={T.gold} note={`${otHrs} hrs a week at $${(w * 1.5).toFixed(2)}`} />}
       <Row label="Gross pay (monthly)" val={gross} color={T.text} />
       <Row label="Federal tax (10%)" val={fed} neg />
       <Row label="State tax (4%)" val={state} neg />
@@ -9415,23 +9324,31 @@ function PaycheckSim() {
 function CompoundSim() {
   const [perDay, setPerDay] = useState(5);
   const [years,  setYears]  = useState(20);
-  const monthly = perDay * 30.4;
-  const i = 0.08 / 12, n = years * 12;
-  const fv = monthly * ((Math.pow(1 + i, n) - 1) / i);
+  const [rate,   setRate]   = useState(8);
+
+  const d = Number(perDay) || 0;
+  const y = Number(years)  || 0;
+  const r = Number(rate)   || 0;
+
+  const monthly = d * 30.4;
+  const i = (r / 100) / 12, n = y * 12;
+  const fv = i > 0 ? monthly * ((Math.pow(1 + i, n) - 1) / i) : monthly * n;
   const put = monthly * n;
-  const growth = fv - put;
-  const fmt = (v) => v >= 1000000 ? "$" + (v / 1000000).toFixed(2) + "M" : "$" + Math.round(v).toLocaleString();
+  const growth = Math.max(0, fv - put);
+  const fmt = (v) => {
+    if (!isFinite(v)) return "$0";
+    if (v >= 1000000000) return "$" + (v / 1000000000).toFixed(2) + "B";
+    if (v >= 1000000) return "$" + (v / 1000000).toFixed(2) + "M";
+    return "$" + Math.round(v).toLocaleString();
+  };
+  const putShare = fv > 0 ? Math.max(2, Math.min(98, (put / fv) * 100)) : 100;
+
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        <div style={{ flex: 1 }}>
-          <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>Saved per day: ${perDay}</label>
-          <input type="range" min="1" max="20" value={perDay} onChange={e => setPerDay(Number(e.target.value))} style={{ width: "100%", accentColor: T.green }} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>For how long: {years} yrs</label>
-          <input type="range" min="1" max="40" value={years} onChange={e => setYears(Number(e.target.value))} style={{ width: "100%", accentColor: T.green }} />
-        </div>
+      <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+        <NumField label="Saved per day" value={perDay} onChange={setPerDay} prefix="$" max={1000000} />
+        <NumField label="For how long" value={years} onChange={setYears} suffix="yrs" max={100} />
+        <NumField label="Growth rate" value={rate} onChange={setRate} suffix="%" max={100} hint="8% is a common long-term stock market estimate" />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
         <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 12, padding: 12, textAlign: "center" }}>
@@ -9444,14 +9361,18 @@ function CompoundSim() {
         </div>
       </div>
       <div style={{ height: 10, borderRadius: 99, overflow: "hidden", display: "flex", background: "rgba(255,255,255,0.06)" }}>
-        <div style={{ width: `${Math.max(4, (put / fv) * 100)}%`, background: "rgba(255,255,255,0.35)" }} />
-        <div style={{ width: `${Math.min(96, (growth / fv) * 100)}%`, background: GRAD.green }} />
+        <div style={{ width: `${putShare}%`, background: "rgba(255,255,255,0.35)", transition: "width 0.3s" }} />
+        <div style={{ width: `${100 - putShare}%`, background: GRAD.green, transition: "width 0.3s" }} />
       </div>
-      <p style={{ color: T.textSub, fontSize: 11, margin: "8px 0 0", lineHeight: 1.5 }}>The green part — {fmt(growth)} — is money your money earned on its own at 8% growth. Time did the heavy lifting.</p>
+      <p style={{ color: T.textSub, fontSize: 11, margin: "8px 0 0", lineHeight: 1.5 }}>
+        The green part — {fmt(growth)} — is money your money earned on its own at {r}% growth. Time did the heavy lifting.
+      </p>
+      <p style={{ color: T.textSub, fontSize: 10, margin: "8px 0 0", lineHeight: 1.5, fontStyle: "italic" }}>
+        An estimate assuming steady contributions and steady growth. Real markets rise and fall along the way.
+      </p>
     </div>
   );
 }
-
 
 const GLOSSARY = [
   { t: "401(k)", d: "A retirement account offered through an employer, often with matching contributions. Money grows tax-advantaged until withdrawal." },
@@ -9712,7 +9633,7 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
 
   const totalLessons = STUDENT_LESSONS.length;
   const doneCount    = completedLessons.length;
-  const pct          = Math.round((doneCount / totalLessons) * 100);
+  const pct          = totalLessons > 0 ? Math.round((doneCount / totalLessons) * 100) : 0;
   const savingsPct   = Math.round((savings / savingsGoal) * 100);
   const level        = Math.floor(xp / 100) + 1;
 
@@ -10664,7 +10585,7 @@ export default function App() {
     await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, { method: "DELETE", headers: hdrs }).catch(() => {});
     await sb.signOut();
     setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0);
-    setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setAuthReady(true);
+    setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setAuthReady(true);
   };
 
   const persistSchool = (p) => {
@@ -10735,7 +10656,7 @@ export default function App() {
 
   const totalSaved = goals.reduce((a, g) => a + g.saved, 0);
   const totalTarget = goals.reduce((a, g) => a + g.target, 0);
-  const overallPct = Math.round((totalSaved / totalTarget) * 100);
+  const overallPct = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
   const monthlyIncome = profile?.monthlyIncome
     ? Math.round(profile.monthlyIncome)
     : profile
@@ -11214,7 +11135,7 @@ export default function App() {
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
       {tab === "deals" && <div style={{ paddingTop: 16 }}><DealsTab /></div>}
-      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setAuthReady(true); }} /></div>}
+      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setAuthReady(true); }} /></div>}
 
       {/* Bottom Nav — primary 6 tabs + More */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(8,9,26,0.97)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(123,110,246,0.15)", zIndex: 100, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)" }}>
