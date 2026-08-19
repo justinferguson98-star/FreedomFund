@@ -9256,6 +9256,9 @@ function NumField({ label, value, onChange, prefix, suffix, max, hint }) {
 function PaycheckSim() {
   const [wage, setWage] = useState(15);
   const [hrs,  setHrs]  = useState(20);
+  const [stateCode, setStateCode] = useState("CA");
+const STATE_TAX_RATES = { AL:{name:"Alabama",rate:0.05}, AK:{name:"Alaska",rate:0}, AZ:{name:"Arizona",rate:0.025}, AR:{name:"Arkansas",rate:0.044}, CA:{name:"California",rate:0.093}, CO:{name:"Colorado",rate:0.044}, CT:{name:"Connecticut",rate:0.0699}, DE:{name:"Delaware",rate:0.066}, FL:{name:"Florida",rate:0}, GA:{name:"Georgia",rate:0.0539}, HI:{name:"Hawaii",rate:0.0825}, ID:{name:"Idaho",rate:0.058}, IL:{name:"Illinois",rate:0.0495}, IN:{name:"Indiana",rate:0.0305}, IA:{name:"Iowa",rate:0.038}, KS:{name:"Kansas",rate:0.057}, KY:{name:"Kentucky",rate:0.04}, LA:{name:"Louisiana",rate:0.03}, ME:{name:"Maine",rate:0.0715}, MD:{name:"Maryland",rate:0.0575}, MA:{name:"Massachusetts",rate:0.05}, MI:{name:"Michigan",rate:0.0425}, MN:{name:"Minnesota",rate:0.0785}, MS:{name:"Mississippi",rate:0.047}, MO:{name:"Missouri",rate:0.048}, MT:{name:"Montana",rate:0.059}, NE:{name:"Nebraska",rate:0.0584}, NV:{name:"Nevada",rate:0}, NH:{name:"New Hampshire",rate:0}, NJ:{name:"New Jersey",rate:0.0637}, NM:{name:"New Mexico",rate:0.049}, NY:{name:"New York",rate:0.0685}, NC:{name:"North Carolina",rate:0.045}, ND:{name:"North Dakota",rate:0.025}, OH:{name:"Ohio",rate:0.035}, OK:{name:"Oklahoma",rate:0.0475}, OR:{name:"Oregon",rate:0.0875}, PA:{name:"Pennsylvania",rate:0.0307}, RI:{name:"Rhode Island",rate:0.0599}, SC:{name:"South Carolina",rate:0.062}, SD:{name:"South Dakota",rate:0}, TN:{name:"Tennessee",rate:0}, TX:{name:"Texas",rate:0}, UT:{name:"Utah",rate:0.0455}, VT:{name:"Vermont",rate:0.066}, VA:{name:"Virginia",rate:0.0575}, WA:{name:"Washington",rate:0}, WV:{name:"West Virginia",rate:0.0482}, WI:{name:"Wisconsin",rate:0.053}, WY:{name:"Wyoming",rate:0}, DC:{name:"Washington D.C.",rate:0.085} };
+
 
   const w = Number(wage) || 0;
   const h = Number(hrs) || 0;
@@ -9266,7 +9269,8 @@ function PaycheckSim() {
   const gross = (weeklyBase + weeklyOt) * 4.33;
   const otMonthly = weeklyOt * 4.33;
 
-  const fed = gross * 0.10, state = gross * 0.04, ss = gross * 0.062, med = gross * 0.0145;
+  const stateRate = STATE_TAX_RATES[stateCode]?.rate ?? 0;
+    const fed = gross * 0.10, state = gross * stateRate, ss = gross * 0.062, med = gross * 0.0145;
   const net = gross - fed - state - ss - med;
   const takeHomePct = gross > 0 ? Math.round((net / gross) * 100) : 0;
 
@@ -9285,7 +9289,14 @@ function PaycheckSim() {
         <NumField label="Hourly wage" value={wage} onChange={setWage} prefix="$" max={100000} />
         <NumField label="Hours per week" value={hrs} onChange={setHrs} suffix="hrs" max={168} hint={otHrs > 0 ? `${otHrs} of these are overtime` : "Over 40 triggers overtime"} />
       </div>
-
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ color: T.textSub, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 5 }}>State</label>
+        <select value={stateCode} onChange={e => { logEvent("paycheck_state_selected", { state: e.target.value }); setStateCode(e.target.value); }} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, padding: "9px 10px", color: T.text, fontFamily: "'Inter',sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          {Object.entries(STATE_TAX_RATES).sort((a, b) => a[1].name.localeCompare(b[1].name)).map(([code, s]) => (
+            <option key={code} value={code}>{s.name}{s.rate === 0 ? " — no state income tax" : ` — ${(s.rate * 100).toFixed(2)}%`}</option>
+          ))}
+        </select>
+      </div>
       {otHrs > 0 && (
         <div style={{ background: "rgba(245,166,35,0.09)", border: "1px solid rgba(245,166,35,0.3)", borderRadius: 12, padding: "10px 13px", marginBottom: 12 }}>
           <p style={{ color: T.gold, fontSize: 12, fontWeight: 700, margin: "0 0 3px" }}>Overtime kicked in</p>
@@ -9299,7 +9310,7 @@ function PaycheckSim() {
       {otHrs > 0 && <Row label="Overtime pay (monthly)" val={otMonthly} color={T.gold} note={`${otHrs} hrs a week at $${(w * 1.5).toFixed(2)}`} />}
       <Row label="Gross pay (monthly)" val={gross} color={T.text} />
       <Row label="Federal tax (10%)" val={fed} neg />
-      <Row label="State tax (4%)" val={state} neg />
+      <Row label={stateRate === 0 ? "State tax (0%)" : `State tax (${(stateRate * 100).toFixed(2)}%)`} val={state} neg />
       <Row label="Social Security (6.2%)" val={ss} neg />
       <Row label="Medicare (1.45%)" val={med} neg />
       <Row label="Your NET pay" val={net} strong color={T.green} />
