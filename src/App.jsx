@@ -107,7 +107,13 @@ const dbDelete = async (table, id, uid) => {
     });
   } catch (e) { console.error("delete", table, e); }
 };
-
+const logEvent = (eventName, eventData = {}, userId = null) => {
+  fetch(`${SUPABASE_URL}/rest/v1/events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+    body: JSON.stringify({ user_id: userId, event_name: eventName, event_data: eventData }),
+  }).catch(() => {});
+};
 // ── Auth Screens ──────────────────────────────────────────────────────────────
 // ── Brand assets ──────────────────────────────────────────────────────────────
 const PiggyLogo = ({ size = 44, float = false }) => (
