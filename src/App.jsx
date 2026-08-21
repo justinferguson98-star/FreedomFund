@@ -9295,7 +9295,7 @@ const STATE_TAX_RATES = { AL:{name:"Alabama",rate:0.05}, AK:{name:"Alaska",rate:
       <span style={{ color: color || (neg ? T.red : T.textMid), fontSize: strong ? 17 : 13, fontWeight: strong ? 900 : 600, flexShrink: 0 }}>{neg ? "-" : ""}${val.toFixed(2)}</span>
     </div>
   );
-
+  
   return (
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
