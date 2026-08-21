@@ -9259,10 +9259,10 @@ function NumField({ label, value, onChange, prefix, suffix, max, hint }) {
   );
 }
 
-function PaycheckSim() {
+fction PaycheckSim() {
   const [wage, setWage] = useState(15);
   const [hrs,  setHrs]  = useState(20);
-  const [stateCode, setStateCode] = useState("CA");
+  const [unstateCode, setStateCode] = useState("CA");
   const [payFreq, setPayFreq] = useState("monthly");
 const STATE_TAX_RATES = { AL:{name:"Alabama",rate:0.05}, AK:{name:"Alaska",rate:0}, AZ:{name:"Arizona",rate:0.025}, AR:{name:"Arkansas",rate:0.044}, CA:{name:"California",rate:0.093}, CO:{name:"Colorado",rate:0.044}, CT:{name:"Connecticut",rate:0.0699}, DE:{name:"Delaware",rate:0.066}, FL:{name:"Florida",rate:0}, GA:{name:"Georgia",rate:0.0539}, HI:{name:"Hawaii",rate:0.0825}, ID:{name:"Idaho",rate:0.058}, IL:{name:"Illinois",rate:0.0495}, IN:{name:"Indiana",rate:0.0305}, IA:{name:"Iowa",rate:0.038}, KS:{name:"Kansas",rate:0.057}, KY:{name:"Kentucky",rate:0.04}, LA:{name:"Louisiana",rate:0.03}, ME:{name:"Maine",rate:0.0715}, MD:{name:"Maryland",rate:0.0575}, MA:{name:"Massachusetts",rate:0.05}, MI:{name:"Michigan",rate:0.0425}, MN:{name:"Minnesota",rate:0.0785}, MS:{name:"Mississippi",rate:0.047}, MO:{name:"Missouri",rate:0.048}, MT:{name:"Montana",rate:0.059}, NE:{name:"Nebraska",rate:0.0584}, NV:{name:"Nevada",rate:0}, NH:{name:"New Hampshire",rate:0}, NJ:{name:"New Jersey",rate:0.0637}, NM:{name:"New Mexico",rate:0.049}, NY:{name:"New York",rate:0.0685}, NC:{name:"North Carolina",rate:0.045}, ND:{name:"North Dakota",rate:0.025}, OH:{name:"Ohio",rate:0.035}, OK:{name:"Oklahoma",rate:0.0475}, OR:{name:"Oregon",rate:0.0875}, PA:{name:"Pennsylvania",rate:0.0307}, RI:{name:"Rhode Island",rate:0.0599}, SC:{name:"South Carolina",rate:0.062}, SD:{name:"South Dakota",rate:0}, TN:{name:"Tennessee",rate:0}, TX:{name:"Texas",rate:0}, UT:{name:"Utah",rate:0.0455}, VT:{name:"Vermont",rate:0.066}, VA:{name:"Virginia",rate:0.0575}, WA:{name:"Washington",rate:0}, WV:{name:"West Virginia",rate:0.0482}, WI:{name:"Wisconsin",rate:0.053}, WY:{name:"Wyoming",rate:0}, DC:{name:"Washington D.C.",rate:0.085} };
 
