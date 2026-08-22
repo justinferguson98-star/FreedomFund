@@ -9274,7 +9274,7 @@ const STATE_TAX_RATES = { AL:{name:"Alabama",rate:0.05}, AK:{name:"Alaska",rate:
   const weeklyBase = baseHrs * w;
   const weeklyOt   = otHrs * w * 1.5;
   
-  const PAY_FREQUENCIES = { weekly: { label: "Weekly", periods: 52 }, biweekly: { label: "Bi-weekly", periods: 26 }, monthly: { label: "Monthly", periods: 12 }, yearly: { label: "Yearly", periods: 1 } };     const periods = PAY_FREQUENCIES[payFreq]?.periods ?? 12;     const basePay = (weeklyBase * 52) / periods;     const otPay = (weeklyOt * 52) / periods;     const gross2 = basePay + otPay;     const otMonthly = weeklyOt * 4.33;
+  const PAY_FREQUENCIES = { weekly: { label: "Weekly", periods: 52 }, biweekly: { label: "Bi-weekly", periods: 26 }, monthly: { label: "Monthly", periods: 12 }, yearly: { label: "Yearly", periods: 1 } };
       const periods = PAY_FREQUENCIES[payFreq]?.periods ?? 12;
     const basePay = (weeklyBase * 52) / periods;
     const otPay = (weeklyOt * 52) / periods;
