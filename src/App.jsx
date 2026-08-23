@@ -4449,7 +4449,7 @@ function BillsTab({ profileSubs = [], initialBills = [], onPersist = () => {}, o
     if (days <= 2)  return { label: `Due in ${days}d`, color: T.red,   bg: `${T.red}10`   };
     if (days <= 5)  return { label: `Due in ${days}d`, color: T.gold,  bg: `${T.gold}10`  };
     if (days <= 7)  return { label: `Due in ${days}d`, color: T.accent,bg: `${T.accent}10`};
-    return { label: `Due ${dueDay}${{dueDay % 10 === 1 && dueDay % 100 !== 11 ? "st" : dueDay % 10 === 2 && dueDay % 100 !== 12 ? "nd" : dueDay % 10 === 3 && dueDay % 100 !== 13 ? "rd" : "th"}:dueDay===2?"nd":dueDay===3?"rd":"th"}`, color: T.textSub, bg: "rgba(255,255,255,0.04)" };
+    return { label: `Due ${dueDay}${dueDay % 10 === 1 && dueDay % 100 !== 11 ? "st" : dueDay % 10 === 2 && dueDay % 100 !== 12 ? "nd" : dueDay % 10 === 3 && dueDay % 100 !== 13 ? "rd" : "th"}:dueDay===2?"nd":dueDay===3?"rd":"th"}`, color: T.textSub, bg: "rgba(255,255,255,0.04)" };
   };
 
   const saveBill  = (b) => {
