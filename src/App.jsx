@@ -3923,7 +3923,7 @@ function AddEditBillModal({ bill, onClose, onSave }) {
                 <button key={d} onClick={() => setReminder(d)} style={{ background: reminder === d ? "rgba(123,110,246,0.15)" : "rgba(255,255,255,0.03)", border: reminder === d ? "1px solid rgba(123,110,246,0.4)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: "9px 0", cursor: "pointer", color: reminder === d ? T.purple : T.textSub, fontFamily: "'Inter',sans-serif", fontWeight: reminder === d ? 700 : 400, fontSize: 13 }}>{d}d</button>
               ))}
             </div>
-            <p style={{ color: T.textSub, fontSize: 11, margin: "6px 0 0" }}>We will remind you {reminder} day{reminder > 1 ? "s" : ""} before the {dueDay}{parseInt(dueDay) % 10 === 1 && parseInt(dueDay) % 100 !== 11 ? "st" : parseInt(dueDay) % 10 === 2 && parseInt(dueDay) % 100 !== 12 ? "nd" : parseInt(dueDay) % 10 === 3 && parseInt(dueDay) % 100 !== 13 ? "rd" : "th"} : parseInt(dueDay) === 2 ? "nd" : parseInt(dueDay) === 3 ? "rd" : "th"} of each month.</p>
+            <p style={{ color: T.textSub, fontSize: 11, margin: "6px 0 0" }}>We will remind you {reminder} day{reminder > 1 ? "s" : ""} before the {dueDay}{parseInt(dueDay) % 10 === 1 && parseInt(dueDay) % 100 !== 11 ? "st" : parseInt(dueDay) % 10 === 2 && parseInt(dueDay) % 100 !== 12 ? "nd" : parseInt(dueDay) % 10 === 3 && parseInt(dueDay) % 100 !== 13 ? "rd" : "th"} of each month.</p>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "13px 15px" }}>
