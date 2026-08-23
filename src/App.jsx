@@ -1544,7 +1544,7 @@ function Onboarding({ onComplete }) {
                       <label style={{ ...S.label, fontSize: 10 }}>Billed on the</label>
                       <select value={sub.dueDay} onChange={e => updateSub(sub.id, "dueDay", parseInt(e.target.value))} style={{ ...S.input, padding: "9px 10px", cursor: "pointer" }}>
                         {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
-                          <option key={d} value={d}>{d}{d===1?"st":d===2?"nd":d===3?"rd":"th"} of month</option>
+                          <option key={d} value={d}>{d}{d % 10 === 1 && d % 100 !== 11 ? "st" : d % 10 === 2 && d % 100 !== 12 ? "nd" : d % 10 === 3 && d % 100 !== 13 ? "rd" : "th"} of month</option>
                         ))}
                       </select>
                     </div>
@@ -3910,7 +3910,7 @@ function AddEditBillModal({ bill, onClose, onSave }) {
               <label style={S.label}>Due day of month</label>
               <select value={dueDay} onChange={e => setDueDay(e.target.value)} style={{ ...S.input, cursor: "pointer" }}>
                 {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
-                  <option key={d} value={d}>{d}{d === 1 ? "st" : d === 2 ? "nd" : d === 3 ? "rd" : "th"}</option>
+                  <option key={d} value={d}>{d}{{d % 10 === 1 && d % 100 !== 11 ? "st" : d % 10 === 2 && d % 100 !== 12 ? "nd" : d % 10 === 3 && d % 100 !== 13 ? "rd" : "th"} : d === 2 ? "nd" : d === 3 ? "rd" : "th"}</option>
                 ))}
               </select>
             </div>
@@ -3923,7 +3923,7 @@ function AddEditBillModal({ bill, onClose, onSave }) {
                 <button key={d} onClick={() => setReminder(d)} style={{ background: reminder === d ? "rgba(123,110,246,0.15)" : "rgba(255,255,255,0.03)", border: reminder === d ? "1px solid rgba(123,110,246,0.4)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: "9px 0", cursor: "pointer", color: reminder === d ? T.purple : T.textSub, fontFamily: "'Inter',sans-serif", fontWeight: reminder === d ? 700 : 400, fontSize: 13 }}>{d}d</button>
               ))}
             </div>
-            <p style={{ color: T.textSub, fontSize: 11, margin: "6px 0 0" }}>We will remind you {reminder} day{reminder > 1 ? "s" : ""} before the {dueDay}{parseInt(dueDay) === 1 ? "st" : parseInt(dueDay) === 2 ? "nd" : parseInt(dueDay) === 3 ? "rd" : "th"} of each month.</p>
+            <p style={{ color: T.textSub, fontSize: 11, margin: "6px 0 0" }}>We will remind you {reminder} day{reminder > 1 ? "s" : ""} before the {dueDay}{{parseInt(dueDay) % 10 === 1 && parseInt(dueDay) % 100 !== 11 ? "st" : parseInt(dueDay) % 10 === 2 && parseInt(dueDay) % 100 !== 12 ? "nd" : parseInt(dueDay) % 10 === 3 && parseInt(dueDay) % 100 !== 13 ? "rd" : "th"} : parseInt(dueDay) === 2 ? "nd" : parseInt(dueDay) === 3 ? "rd" : "th"} of each month.</p>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "13px 15px" }}>
@@ -4449,7 +4449,7 @@ function BillsTab({ profileSubs = [], initialBills = [], onPersist = () => {}, o
     if (days <= 2)  return { label: `Due in ${days}d`, color: T.red,   bg: `${T.red}10`   };
     if (days <= 5)  return { label: `Due in ${days}d`, color: T.gold,  bg: `${T.gold}10`  };
     if (days <= 7)  return { label: `Due in ${days}d`, color: T.accent,bg: `${T.accent}10`};
-    return { label: `Due ${dueDay}${dueDay===1?"st":dueDay===2?"nd":dueDay===3?"rd":"th"}`, color: T.textSub, bg: "rgba(255,255,255,0.04)" };
+    return { label: `Due ${dueDay}${${dueDay % 10 === 1 && dueDay % 100 !== 11 ? "st" : dueDay % 10 === 2 && dueDay % 100 !== 12 ? "nd" : dueDay % 10 === 3 && dueDay % 100 !== 13 ? "rd" : "th"}:dueDay===2?"nd":dueDay===3?"rd":"th"}`, color: T.textSub, bg: "rgba(255,255,255,0.04)" };
   };
 
   const saveBill  = (b) => {
@@ -7103,7 +7103,7 @@ function CoupleMode({ profile, goals, myGoals }) {
                       </div>
                       <div>
                         <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>{bill.name}</p>
-                        <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Due {bill.dueDay}{bill.dueDay===1?"st":bill.dueDay===2?"nd":bill.dueDay===3?"rd":"th"} &middot; {bill.autopay ? "Autopay" : "Manual"}</p>
+                        <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Due {bill.dueDay}{bill.dueDay % 10 === 1 && bill.dueDay % 100 !== 11 ? "st" : bill.dueDay % 10 === 2 && bill.dueDay % 100 !== 12 ? "nd" : bill.dueDay % 10 === 3 && bill.dueDay % 100 !== 13 ? "rd" : "th":bill.dueDay===2?"nd":bill.dueDay===3?"rd":"th"} &middot; {bill.autopay ? "Autopay" : "Manual"}</p>
                       </div>
                     </div>
                     <p style={{ color: T.text, fontWeight: 800, fontSize: 16, margin: 0 }}>${bill.amount}</p>
