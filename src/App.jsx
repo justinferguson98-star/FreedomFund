@@ -4984,8 +4984,14 @@ function NetWorthTab({ goals, profile, initialAssets = [], initialLiabs = [], on
 }
 
 // ── Debt Payoff Planner ───────────────────────────────────────────────────────
-function DebtPayoffTab() {
-  const [debts, setDebts] = useState([]);
+const DEFAULT_DEBTS = [
+  { id: 1, name: "Credit Card",   balance: 1800,  rate: 21.9, minPayment: 45  },
+  { id: 2, name: "Car Loan",      balance: 12400, rate: 5.9,  minPayment: 380 },
+  { id: 3, name: "Student Loan",  balance: 28000, rate: 4.5,  minPayment: 210 },
+];
+
+function DebtPayoffTab({ initialDebts = [], onPersistDebt = () => {}, onDeleteDebt = () => {} }) {
+  const [debts, setDebts] = useState(initialDebts.length ? initialDebts : DEFAULT_DEBTS);
   const [method, setMethod] = useState("avalanche"); // avalanche | snowball
   const [extra, setExtra] = useState("100");
   const [showAdd, setShowAdd] = useState(false);
@@ -5025,10 +5031,12 @@ function DebtPayoffTab() {
   }, 0);
 
   const addDebt = () => {
-    if (!newName || !newBal || !newRate) return;
-    setDebts(p => [...p, { id: Date.now(), name: newName, balance: parseFloat(newBal), rate: parseFloat(newRate), minPayment: parseFloat(newMin) || 25 }]);
-    setNewName(""); setNewBal(""); setNewRate(""); setNewMin(""); setShowAdd(false);
-  };
+  if (!newName || !newBal || !newRate) return;
+  const newDebt = { id: Date.now(), name: newName, balance: parseFloat(newBal), rate: parseFloat(newRate), minPayment: parseFloat(newMin) || 25 };
+  setDebts(p => [...p, newDebt]);
+  onPersistDebt(newDebt);
+  setNewName(""); setNewBal(""); setNewRate(""); setNewMin(""); setShowAdd(false);
+};
 
   return (
     <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 14, paddingBottom: 24 }}>
@@ -10456,6 +10464,7 @@ export default function App() {
   const [dbBills,  setDbBills]  = useState([]);
   const [dbSchool, setDbSchool] = useState(null);
   const [dbAssets, setDbAssets] = useState([]);
+    const [dbDebts,  setDbDebts]  = useState([]);
   const [dbLiabs,  setDbLiabs]  = useState([]);
   const [restoring, setRestoring] = useState(true);
 
@@ -10530,14 +10539,15 @@ export default function App() {
       if (Array.isArray(nrData)) setReadNotifs(nrData.map(r => r.notification_id));
 
       // Load bills, assets, liabilities
-      const [bRows, aRows, lRows] = await Promise.all([
-        dbRows("bills", uid), dbRows("assets", uid), dbRows("liabilities", uid),
-      ]);
+      const [bRows, aRows, lRows, dRows] = await Promise.all([
+  dbRows("bills", uid), dbRows("assets", uid), dbRows("liabilities", uid), dbRows("debts", uid),
+]);
       setDbBills(bRows.map(b => {
         const c = BILL_CATEGORIES.find(x => x.id === b.category) || BILL_CATEGORIES[7];
         return { id: b.id, name: b.name, category: b.category, amount: Number(b.amount), dueDay: b.due_day, autopay: !!b.autopay, notes: b.notes || "", reminderDays: b.reminder_days ?? 3, paidMonths: b.paid_months || [], color: c.color, icon: c.icon };
       }));
       setDbAssets(aRows.map(a => ({ id: a.id, name: a.name, amount: Number(a.amount), cat: a.cat || "Other", icon: a.icon || "dollarSign" })));
+      setDbDebts(dRows.map(d => ({ id: d.id, name: d.name, balance: Number(d.balance), rate: Number(d.rate) || 0, minPayment: Number(d.min_payment) || 25 })));
       setDbLiabs(lRows.map(l => ({ id: l.id, name: l.name, amount: Number(l.amount), rate: Number(l.rate) || 0, cat: l.cat || "Other", icon: l.icon || "dollarSign" })));
 
       // Load school progress
@@ -10606,6 +10616,8 @@ export default function App() {
   const persistAsset  = (a) => { if (!authUser) return; dbUpsert("assets", { id: a.id, user_id: authUser.id, name: a.name, amount: a.amount, cat: a.cat, icon: a.icon }); };
   const removeAssetDb = (id) => { if (authUser) dbDelete("assets", id, authUser.id); };
   const persistLiab   = (l) => { if (!authUser) return; dbUpsert("liabilities", { id: l.id, user_id: authUser.id, name: l.name, amount: l.amount, rate: l.rate, cat: l.cat, icon: l.icon }); };
+  const persistDebt   = (d) => { if (!authUser) return; dbUpsert("debts", { id: d.id, user_id: authUser.id, name: d.name, balance: d.balance, rate: d.rate, min_payment: d.minPayment }); };
+  const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id); };
   const removeLiabDb  = (id) => { if (authUser) dbDelete("liabilities", id, authUser.id); };
   const deleteAccountData = async () => {
     if (!authUser) return;
@@ -11129,7 +11141,7 @@ export default function App() {
       {tab === "joneses"   && <div style={{ paddingTop: 16 }}><JonesesComparison profile={profile} goals={goals} /></div>}
       {tab === "referral"  && <div style={{ paddingTop: 16 }}><ReferralSystem profile={profile} /></div>}
       {tab === "networth"  && <div style={{ paddingTop: 16 }}><NetWorthTab goals={goals} profile={profile} initialAssets={dbAssets} initialLiabs={dbLiabs} onPersistAsset={persistAsset} onDeleteAsset={removeAssetDb} onPersistLiab={persistLiab} onDeleteLiab={removeLiabDb} /></div>}
-      {tab === "debt"      && <div style={{ paddingTop: 16 }}><DebtPayoffTab /></div>}
+      {tab === "debt"      && <div style={{ paddingTop: 16 }}><DebtPayoffTab initialDebts={dbDebts} onPersistDebt={persistDebt} onDeleteDebt={removeDebtDb} /></div>}
       {tab === "health"    && <div style={{ paddingTop: 16 }}><HealthScore goals={goals} profile={profile} /></div>}
       {tab === "whatif"    && <div style={{ paddingTop: 16 }}><WhatIfCalculator goals={goals} profile={profile} /></div>}
       {tab === "learn"     && <div style={{ paddingTop: 16 }}><InvestEducationPath /></div>}
