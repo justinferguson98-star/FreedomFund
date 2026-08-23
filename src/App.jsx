@@ -7103,7 +7103,7 @@ function CoupleMode({ profile, goals, myGoals }) {
                       </div>
                       <div>
                         <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>{bill.name}</p>
-                        <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Due {bill.dueDay}{bill.dueDay % 10 === 1 && bill.dueDay % 100 !== 11 ? "st" : bill.dueDay % 10 === 2 && bill.dueDay % 100 !== 12 ? "nd" : bill.dueDay % 10 === 3 && bill.dueDay % 100 !== 13 ? "rd" : "th":bill.dueDay===2?"nd":bill.dueDay===3?"rd":"th"} &middot; {bill.autopay ? "Autopay" : "Manual"}</p>
+                        <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Due {bill.dueDay}{bill.dueDay % 10 === 1 && bill.dueDay % 100 !== 11 ? "st" : bill.dueDay % 10 === 2 && bill.dueDay % 100 !== 12 ? "nd" : bill.dueDay % 10 === 3 && bill.dueDay % 100 !== 13 ? "rd" : "th"} &middot; {bill.autopay ? "Autopay" : "Manual"}</p>
                       </div>
                     </div>
                     <p style={{ color: T.text, fontWeight: 800, fontSize: 16, margin: 0 }}>${bill.amount}</p>
