@@ -10616,8 +10616,8 @@ export default function App() {
   const persistAsset  = (a) => { if (!authUser) return; dbUpsert("assets", { id: a.id, user_id: authUser.id, name: a.name, amount: a.amount, cat: a.cat, icon: a.icon }); };
   const removeAssetDb = (id) => { if (authUser) dbDelete("assets", id, authUser.id); };
   const persistLiab   = (l) => { if (!authUser) return; dbUpsert("liabilities", { id: l.id, user_id: authUser.id, name: l.name, amount: l.amount, rate: l.rate, cat: l.cat, icon: l.icon }); };
-  const persistDebt   = (d) => { if (!authUser) return; dbUpsert("debts", { id: d.id, user_id: authUser.id, name: d.name, balance: d.balance, rate: d.rate, min_payment: d.minPayment }); };
-  const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id); };
+  const persistDebt   = (d) => { if (!authUser) return; dbUpsert("debts", { id: d.id, user_id: authUser.id, name: d.name, balance: d.balance, rate: d.rate, min_payment: d.minPayment }); setDbDebts(p => p.some(x => x.id === d.id) ? p.map(x => x.id === d.id ? d : x) : [...p, d]); };
+const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id); setDbDebts(p => p.filter(x => x.id !== id)); };
   const removeLiabDb  = (id) => { if (authUser) dbDelete("liabilities", id, authUser.id); };
   const deleteAccountData = async () => {
     if (!authUser) return;
