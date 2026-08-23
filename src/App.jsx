@@ -5112,8 +5112,11 @@ function DebtPayoffTab({ initialDebts = [], onPersistDebt = () => {}, onDeleteDe
                 <p style={{ color: i === 0 ? T.purple : T.textMid, fontSize: 12, fontWeight: 700, margin: 0 }}>{yrs > 0 ? `${yrs}y ` : ""}{mo}m</p>
                 <p style={{ color: T.textSub, fontSize: 10, margin: "2px 0 0" }}>to pay off</p>
               </div>
+              <button onClick={() => { if (window.confirm(`Remove "${d.name}"? Use this once it's paid off or if it was entered by mistake.`)) { setDebts(p => p.filter(x => x.id !== d.id)); onDeleteDebt(d.id); } }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, opacity: 0.5, flexShrink: 0 }}>
+  <Icon name="x" size={14} color={T.red} />
+</button>
             </div>
-          );
+            );
         })}
       </div>
 
