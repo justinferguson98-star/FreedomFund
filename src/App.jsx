@@ -1,4 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
+import * as Sentry from "https://esm.sh/@sentry/react@8";
+
+Sentry.init({
+  dsn: "https://15433d4d00324dc8462d80041ffb7a548a4511963283062784.ingest.us.sentry.io/4511963203903232",
+  integrations: [],
+  tracesSampleRate: 0,
+});
 
 // ── Supabase client (fetch-based, no SDK needed) ──────────────────────────────
 const SUPABASE_URL = "https://gqmoprupnykrfmdiameo.supabase.co";
