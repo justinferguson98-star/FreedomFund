@@ -9,8 +9,8 @@ Sentry.init({
 
 // ── Supabase client (fetch-based, no SDK needed) ──────────────────────────────
 const SUPABASE_URL = "https://gqmoprupnykrfmdiameo.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxbW9wcnVwbnlrcmZtZGlhbWVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NzQ1NzAsImV4cCI6MjA5ODI1MDU3MH0.nLh3uzdhe7efGnerhLlaJ9ePKoHATeuirUt8mwTsJgg";
-
+ 
+   const SUPABASE_KEY = "sb_publishable_USEB6XmXPQvzh4uJ9w4JVQ_YFRWEW8x";
 // Session: in-memory + localStorage persistence (guarded so sandboxed previews still work)
 let _session = null;
 const _saveSession = (data) => { try { if (data?.refresh_token) localStorage.setItem("ff_refresh", data.refresh_token); } catch (e) {} };
