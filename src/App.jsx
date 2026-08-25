@@ -3916,7 +3916,7 @@ function AddEditBillModal({ bill, onClose, onSave }) {
             <div>
               <label style={S.label}>Due day of month</label>
               <select value={dueDay} onChange={e => setDueDay(e.target.value)} style={{ ...S.input, cursor: "pointer" }}>
-                {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+                {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
                   <option key={d} value={d}>{d}{d % 10 === 1 && d % 100 !== 11 ? "st" : d % 10 === 2 && d % 100 !== 12 ? "nd" : d % 10 === 3 && d % 100 !== 13 ? "rd" : "th"}</option>
                 ))}
               </select>
