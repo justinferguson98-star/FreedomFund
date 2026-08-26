@@ -1903,7 +1903,7 @@ function GoalCreationFlow({ onComplete, onCancel }) {
           </div>
         ))}
       </div>
-      <button onClick={() => onComplete(newGoal)} style={S.primaryBtn(cat?.color)}>Finish and View Goals</button>
+      <div style={{ display: "flex", gap: 10 }}>   <button onClick={() => setStep(3)} style={{ ...S.primaryBtn(), flex: 1, background: "transparent", border: `1px solid ${T.border}` }}>Back</button>   <button onClick={() => onComplete(newGoal)} style={{ ...S.primaryBtn(cat?.color), flex: 2 }}>Finish and View Goals</button> </div>
     </div>
   );
 }
