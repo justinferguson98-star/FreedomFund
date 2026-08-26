@@ -1890,9 +1890,9 @@ function GoalCreationFlow({ onComplete, onCancel }) {
       <p style={{ color: T.textSub, fontSize: 13, margin: "0 0 18px", lineHeight: 1.6 }}>Your progress can inspire others — but you are always in control.</p>
       <div style={{ ...S.card, marginBottom: 16 }}>
         {[
-          { key: "isPublic", label: "Share on Community Feed", desc: "Others can see your progress", dis: false },
-          { key: "showAmount", label: "Show dollar amounts", desc: "Display your actual savings total", dis: !privacy.isPublic },
-          { key: "showPercent", label: "Show percentage", desc: "Show progress toward your goal", dis: !privacy.isPublic },
+          
+          { key: "showAmount", label: "Show dollar amounts", desc: "Display your actual savings total", dis: false },
+          { key: "showPercent", label: "Show percentage", desc: "Show progress toward your goal", dis: false },
         ].map((row, i, arr) => (
           <div key={row.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : "none", opacity: row.dis ? 0.35 : 1 }}>
             <div style={{ flex: 1, marginRight: 12 }}>
