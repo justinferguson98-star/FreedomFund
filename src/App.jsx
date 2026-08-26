@@ -1879,7 +1879,10 @@ function GoalCreationFlow({ onComplete, onCancel }) {
           <span style={{ color: T.textSub, fontSize: 12 }}>of ${parseFloat(form.target).toLocaleString()}</span>
         </div>
       </div>
-      <button onClick={() => setStep(4)} style={{ ...S.primaryBtn(), width: "100%" }}>Configure Sharing</button>
+      <div style={{ display: "flex", gap: 10 }}>
+  <button onClick={() => setStep(2)} style={{ ...S.primaryBtn(), flex: 1, background: "transparent", border: `1px solid ${T.border}` }}>Back</button>
+  <button onClick={() => setStep(4)} style={{ ...S.primaryBtn(), flex: 2 }}>Configure Sharing</button>
+</div>
     </div>
   );
 
