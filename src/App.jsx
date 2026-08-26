@@ -4991,14 +4991,10 @@ function NetWorthTab({ goals, profile, initialAssets = [], initialLiabs = [], on
 }
 
 // ── Debt Payoff Planner ───────────────────────────────────────────────────────
-const DEFAULT_DEBTS = [
-  { id: 1, name: "Credit Card",   balance: 1800,  rate: 21.9, minPayment: 45  },
-  { id: 2, name: "Car Loan",      balance: 12400, rate: 5.9,  minPayment: 380 },
-  { id: 3, name: "Student Loan",  balance: 28000, rate: 4.5,  minPayment: 210 },
-];
+
 
 function DebtPayoffTab({ initialDebts = [], onPersistDebt = () => {}, onDeleteDebt = () => {} }) {
-  const [debts, setDebts] = useState(initialDebts.length ? initialDebts : DEFAULT_DEBTS);
+  const [debts, setDebts] = useState(initialDebts);
   const [method, setMethod] = useState("avalanche"); // avalanche | snowball
   const [extra, setExtra] = useState("100");
   const [showAdd, setShowAdd] = useState(false);
