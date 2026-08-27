@@ -7918,14 +7918,20 @@ const INVEST_LEVELS = [
   },
 ];
 
-function InvestEducationPath({ onTabChange }) {
-  const [completedLessons, setCompletedLessons] = useState([]);
-  const [completedQuizzes, setCompletedQuizzes] = useState([]);
+function InvestEducationPath({ onTabChange, initialProgress = null, onSaveProgress = () => {} }) {
+  const [completedLessons, setCompletedLessons] = useState(initialProgress?.lessons || []);
+  const [completedQuizzes, setCompletedQuizzes] = useState(initialProgress?.quizzes || []);
   const [activeLesson, setActiveLesson] = useState(null);
   const [activeLevel, setActiveLevel] = useState(null);
   const [quizAnswer, setQuizAnswer] = useState(null);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [xp, setXp] = useState(0);
+  const [xp, setXp] = useState(initialProgress?.xp || 0);
+
+  // Save progress to the database whenever it changes, so it survives logout/login
+  useEffect(() => {
+    onSaveProgress({ lessons: completedLessons, quizzes: completedQuizzes, xp });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [completedLessons, completedQuizzes, xp]);
 
   const totalLessons = INVEST_LEVELS.reduce((a, l) => a + l.lessons.length, 0);
   const completedCount = completedLessons.length;
@@ -8700,11 +8706,14 @@ function EmergencyFundCalc({ profile, goals, onNavigate }) {
 }
 
 // ── Joneses Comparison (Community Benchmarking) ───────────────────────────────
-function JonesesComparison({ profile, goals }) {
+function JonesesComparison({ profile, goals, debts = [], netWorth = 0 }) {
   const [category, setCategory] = useState("savings");
-  const mo = profile?.monthlyIncome || 4200;
+  const mo = profile?.monthlyIncome || 0;
   const totalSaved = goals.reduce((a, g) => a + g.saved, 0);
-  const savingsRate = Math.round((800 / mo) * 100);
+  const realSaved = Math.max(0, mo - (profile?.totalFixed || 0) - (profile?.totalVariable || 0));
+  const savingsRate = mo > 0 ? Math.round((realSaved / mo) * 100) : 0;
+  const diningMonthly = Math.round((profile?.diningOut || 0) * 4.33);
+  const totalDebt = debts.reduce((a, d) => a + (Number(d.balance) || 0), 0);
 
   const cats = ["savings","spending","debt","networth","goals"];
 
@@ -8725,7 +8734,7 @@ function JonesesComparison({ profile, goals }) {
     },
     spending: {
       label: "Monthly Dining Spend",
-      yours: 380,
+      yours: diningMonthly,
       unit: "$",
       format: v => `$${v}`,
       brackets: [
@@ -8734,12 +8743,14 @@ function JonesesComparison({ profile, goals }) {
         { label: "High",       value: 500, color: T.gold   },
         { label: "Very high",  value: 700, color: T.red    },
       ],
-      insight: "You spend $380/mo on dining — $40 above the national average. Cutting to the average saves $480/yr. Cutting to the frugal level saves $2,760/yr.",
-      insightColor: T.gold,
+      insight: diningMonthly > 340
+        ? `You spend $${diningMonthly}/mo on dining — $${diningMonthly - 340} above the national average. Cutting to the average saves $${Math.round((diningMonthly - 340) * 12).toLocaleString()}/yr.`
+        : `You spend $${diningMonthly}/mo on dining — at or below the national average of $340. Nice work.`,
+      insightColor: diningMonthly > 500 ? T.red : diningMonthly > 340 ? T.gold : T.green,
     },
     debt: {
-      label: "Credit Card Debt",
-      yours: 1800,
+      label: "Credit Card / Other Debt",
+      yours: totalDebt,
       unit: "$",
       format: v => `$${v.toLocaleString()}`,
       brackets: [
@@ -8747,22 +8758,26 @@ function JonesesComparison({ profile, goals }) {
         { label: "National avg",  value: 6500, color: T.textSub},
         { label: "High",          value: 12000,color: T.red    },
       ],
-      insight: "Your $1,800 CC balance is well below the national average of $6,500. Paying it off entirely saves you ~$378/yr in interest at 21% APR.",
-      insightColor: T.green,
+      insight: totalDebt === 0
+        ? "You have no tracked debt. That puts you well ahead of the national average of about $6,500."
+        : totalDebt < 6500
+          ? `Your $${totalDebt.toLocaleString()} balance is below the national average of $6,500.`
+          : `Your $${totalDebt.toLocaleString()} balance is above the national average of $6,500. Paying down high-interest debt first usually has the biggest impact.`,
+      insightColor: totalDebt === 0 ? T.green : totalDebt < 6500 ? T.green : T.red,
     },
     networth: {
-      label: "Net Worth by Age",
-      yours: 18000,
+      label: "Net Worth",
+      yours: netWorth,
       unit: "$",
-      format: v => `$${v.toLocaleString()}`,
+      format: v => `${v < 0 ? "-" : ""}$${Math.abs(v).toLocaleString()}`,
       brackets: [
         { label: "Bottom 25%",  value: -3000, color: T.red   },
         { label: "Median 30s",  value: 35000, color: T.textSub},
         { label: "Top 25%",     value: 120000,color: T.gold  },
         { label: "Top 10%",     value: 300000,color: T.green },
       ],
-      insight: "At $18,000 net worth you are ahead of the bottom 25% but below median. The median for your age group is ~$35,000. You are building — keep going.",
-      insightColor: T.gold,
+      insight: `At $${netWorth.toLocaleString()} net worth${netWorth < 35000 ? ", you're building toward the ~$35,000 median for your age group." : ", you're above the ~$35,000 median for your age group."} Keep going.`,
+      insightColor: netWorth >= 35000 ? T.green : T.gold,
     },
     goals: {
       label: "Active Savings Goals",
@@ -8789,7 +8804,7 @@ function JonesesComparison({ profile, goals }) {
       <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)" }}>
         <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 6px" }}>The Joneses Comparison</p>
         <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 4px", lineHeight: 1.5 }}>See how you actually stack up.</p>
-        <p style={{ color: T.textSub, fontSize: 13, margin: 0, lineHeight: 1.6 }}>Anonymous, opt-in benchmarks from real Freedom Funds users and national financial data. No names. No judgment. Just truth.</p>
+        <p style={{ color: T.textSub, fontSize: 13, margin: 0, lineHeight: 1.6 }}>Your real numbers against published national financial data. No names. No judgment. Just truth.</p>
       </div>
 
       {/* Category tabs */}
@@ -10666,6 +10681,7 @@ export default function App() {
   const [dbLiabs,  setDbLiabs]  = useState([]);
   const [dbSnapshots, setDbSnapshots] = useState([]);
   const [dbHoldings, setDbHoldings] = useState([]);
+  const [dbInvestEdu, setDbInvestEdu] = useState(null);
   const [restoring, setRestoring] = useState(true);
 
   // Restore previous session on page load (stay signed in)
@@ -10766,6 +10782,10 @@ export default function App() {
       const hRows = await dbRows("invest_holdings", uid);
       if (Array.isArray(hRows)) setDbHoldings(hRows.map(r => ({ id: r.id, ticker: r.ticker, amount: Number(r.amount), vestingPeriod: r.vesting_period || "None" })));
 
+      // Load invest education progress (lessons, quizzes, xp)
+      const ieRows = await dbRows("invest_education", uid);
+      if (ieRows[0]) setDbInvestEdu({ lessons: ieRows[0].lessons || [], quizzes: ieRows[0].quizzes || [], xp: ieRows[0].xp || 0 });
+
     } catch (err) {
       console.error("Error loading user data:", err);
       setScreen("onboarding");
@@ -10840,6 +10860,9 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
   const persistHolding = (h) => { if (!authUser) return; dbUpsert("invest_holdings", { id: h.id, user_id: authUser.id, ticker: h.ticker, amount: h.amount, vesting_period: h.vestingPeriod || "None" }); };
   const removeHoldingDb = (id) => { if (authUser) dbDelete("invest_holdings", id, authUser.id); };
 
+  // ── Persist invest education progress ──────────────────────────────
+  const persistInvestEdu = (p) => { if (!authUser) return; dbUpsert("invest_education", { id: authUser.id, user_id: authUser.id, lessons: p.lessons, quizzes: p.quizzes, xp: p.xp }); };
+
   // ── Persist a daily net worth snapshot (one row per user per day) ─
   const lastSnapshotRef = useRef({ date: null, value: null });
   const persistSnapshot = (netWorth) => {
@@ -10858,14 +10881,14 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
     if (!authUser) return;
     const uid = authUser.id;
     const hdrs = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${sb._token() || SUPABASE_KEY}` };
-    const tables = ["goals", "bills", "assets", "liabilities", "check_ins", "school_progress", "class_members", "goal_transactions", "hustle_entries", "notification_reads", "subscriptions", "bill_payments", "debts", "networth_snapshots", "invest_holdings"];
+    const tables = ["goals", "bills", "assets", "liabilities", "check_ins", "school_progress", "class_members", "goal_transactions", "hustle_entries", "notification_reads", "subscriptions", "bill_payments", "debts", "networth_snapshots", "invest_holdings", "invest_education"];
     await Promise.all(tables.map(t =>
       fetch(`${SUPABASE_URL}/rest/v1/${t}?user_id=eq.${uid}`, { method: "DELETE", headers: hdrs }).catch(() => {})
     ));
     await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, { method: "DELETE", headers: hdrs }).catch(() => {});
     await sb.signOut();
     setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0);
-    setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setAuthReady(true);
+    setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setAuthReady(true);
   };
 
   const persistSchool = (p) => {
@@ -11397,13 +11420,13 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "hustle"    && <div style={{ paddingTop: 16 }}><SideHustleTab profile={profile} /></div>}
       {tab === "tax"       && <div style={{ paddingTop: 16 }}><TaxEstimator profile={profile} /></div>}
       {tab === "emergency" && <div style={{ paddingTop: 16 }}><EmergencyFundCalc profile={profile} goals={goals} onNavigate={setTab} /></div>}
-      {tab === "joneses"   && <div style={{ paddingTop: 16 }}><JonesesComparison profile={profile} goals={goals} /></div>}
+      {tab === "joneses"   && <div style={{ paddingTop: 16 }}><JonesesComparison profile={profile} goals={goals} debts={dbDebts} netWorth={dbAssets.reduce((a, x) => a + (Number(x.amount) || 0), 0) + goals.reduce((a, g) => a + g.saved, 0) - dbLiabs.reduce((a, x) => a + (Number(x.amount) || 0), 0)} /></div>}
       {tab === "referral"  && <div style={{ paddingTop: 16 }}><ReferralSystem profile={profile} /></div>}
       {tab === "networth"  && <div style={{ paddingTop: 16 }}><NetWorthTab goals={goals} profile={profile} initialAssets={dbAssets} initialLiabs={dbLiabs} onPersistAsset={persistAsset} onDeleteAsset={removeAssetDb} onPersistLiab={persistLiab} onDeleteLiab={removeLiabDb} snapshots={dbSnapshots} onSnapshot={persistSnapshot} /></div>}
       {tab === "debt"      && <div style={{ paddingTop: 16 }}><DebtPayoffTab initialDebts={dbDebts} onPersistDebt={persistDebt} onDeleteDebt={removeDebtDb} /></div>}
       {tab === "health"    && <div style={{ paddingTop: 16 }}><HealthScore goals={goals} profile={profile} debts={dbDebts} bills={dbBills} checkInLog={checkInLog} /></div>}
       {tab === "whatif"    && <div style={{ paddingTop: 16 }}><WhatIfCalculator goals={goals} profile={profile} /></div>}
-      {tab === "learn"     && <div style={{ paddingTop: 16 }}><InvestEducationPath /></div>}
+      {tab === "learn"     && <div style={{ paddingTop: 16 }}><InvestEducationPath initialProgress={dbInvestEdu} onSaveProgress={persistInvestEdu} /></div>}
       {tab === "credit"    && <div style={{ paddingTop: 16 }}><CreditScoreTracker /></div>}
       {tab === "couple"    && <div style={{ paddingTop: 16 }}><CoupleMode profile={profile} goals={goals} /></div>}
       {tab === "insights"  && (
@@ -11438,7 +11461,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab initialHoldings={dbHoldings} onPersistHolding={persistHolding} onDeleteHolding={removeHoldingDb} /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
       {tab === "deals" && <div style={{ paddingTop: 16 }}><DealsTab /></div>}
-      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setAuthReady(true); }} /></div>}
+      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setAuthReady(true); }} /></div>}
 
       {/* Bottom Nav — primary 6 tabs + More */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(8,9,26,0.97)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(123,110,246,0.15)", zIndex: 100, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)" }}>
