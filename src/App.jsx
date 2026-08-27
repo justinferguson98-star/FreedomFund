@@ -575,8 +575,8 @@ const T = {
   teal:     "#00E5CC",  tealLo:   "rgba(0,229,204,0.12)",
   pink:     "#FF4FA1",  pinkLo:   "rgba(255,79,161,0.12)",
   text:     "#FFFFFF",
-  textSub:  "#4A4878",
-  textMid:  "#8884B0",
+  textSub:  "#9490C4",
+  textMid:  "#ACA8D6",
 };
 
 // ── Gradient presets ──────────────────────────────────────────────────────────
@@ -789,8 +789,20 @@ function InfoTip({ text }) {
 // ── Onboarding ────────────────────────────────────────────────────────────────
 const SLIDES = [
   {
+    title: "Here's the Reality",
+    body: "Most people are stretched thinner than they let on. A plan changes that.",
+    accent: "#EF4444",
+    icon: "zap",
+    statList: [
+      { stat: "78%", label: "live paycheck to paycheck" },
+      { stat: "$6,500", label: "avg. credit card debt" },
+      { stat: "21%", label: "avg. credit card APR" },
+      { stat: "$0", label: "emergency savings for 1 in 4" },
+    ],
+  },
+  {
     title: "The Rat Race is Designed to Keep You Broke",
-    body: "Every ad, every social media post, every car commercial is engineered to make you spend money you do not have to impress people you do not like. Most people will retire broke because they spent 40 years trying to look rich instead of becoming wealthy.",
+    body: "Ads and social media push you to spend money you don't have to impress people you don't like. A plan is how you opt out.",
     accent: "#EF4444",
     icon: "zap",
     stat: "The average retiree has less than $87,000 saved. That lasts 3 years.",
@@ -798,7 +810,7 @@ const SLIDES = [
   },
   {
     title: "A Budget is Not a Restriction. It is Permission.",
-    body: "A budget does not tell you what you cannot do — it tells you exactly what you can do without guilt. When every dollar has a job, you stop wondering where your money went. You already decided.",
+    body: "A budget doesn't say what you can't do — it says exactly what you can do, guilt-free.",
     accent: "#3B82F6",
     icon: "target",
     stat: "People on a written budget save 18% more on average than those without one.",
@@ -806,7 +818,7 @@ const SLIDES = [
   },
   {
     title: "Sacrifice Now. Live Free Later.",
-    body: "Financial freedom is not about making more money. It is about deciding that your future matters more than tonight's dinner out. The people who retire early and live without financial stress are not lucky. They just chose differently — consistently.",
+    body: "Financial freedom isn't about earning more. It's deciding your future matters more than tonight's takeout.",
     accent: "#10B981",
     icon: "shield",
     stat: "\"Live like no one else, so that later you can live like no one else.\" — Dave Ramsey",
@@ -814,7 +826,7 @@ const SLIDES = [
   },
   {
     title: "Your Bank Account Tells the Truth",
-    body: "You can tell us your values all day long. But your bank statement shows us your real priorities. Freedom Funds connects to your accounts to show you the truth — not to judge you, but to give you a real plan based on real numbers.",
+    body: "Your bank statement shows your real priorities. We use it to build a plan based on real numbers — not judgment.",
     accent: "#F59E0B",
     icon: "eye",
     stat: "Users who connect their bank account save 3x more in their first 90 days.",
@@ -963,36 +975,15 @@ function Onboarding({ onComplete }) {
           <span style={{ color: T.accent }}>for the Joneses.</span>
         </h1>
         <p style={{ color: T.textMid, fontSize: 16, fontWeight: 400, margin: "16px 0 0", lineHeight: 1.8, maxWidth: 340 }}>
-          The Joneses are broke. They finance their cars, rent their lifestyle, and call it success. Real freedom looks different — and it starts with a budget.
+          Real freedom starts with a plan, not a paycheck.
         </p>
-
-        {/* Reality check stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, margin: "32px 0 0" }}>
-          {[
-            { stat: "78%", label: "of Americans live paycheck to paycheck" },
-            { stat: "$6,500", label: "average credit card debt per person" },
-            { stat: "21%", label: "average credit card interest rate" },
-            { stat: "$0", label: "saved for emergencies by 1 in 4 adults" },
-          ].map(s => (
-            <div key={s.stat} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px" }}>
-              <p style={{ color: T.accent, fontWeight: 800, fontSize: 20, margin: "0 0 4px", letterSpacing: -0.5 }}>{s.stat}</p>
-              <p style={{ color: T.textSub, fontSize: 11, margin: 0, lineHeight: 1.4 }}>{s.label}</p>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ margin: "28px 0 0", padding: "14px 16px", background: `linear-gradient(135deg, ${T.accent}12, transparent)`, border: `1px solid ${T.accent}25`, borderRadius: 10, borderLeft: `3px solid ${T.accent}` }}>
-          <p style={{ color: T.textMid, fontSize: 13, margin: 0, lineHeight: 1.7, fontStyle: "italic" }}>
-            "Sacrifice like no one else today — so you can live like no one else tomorrow."
-          </p>
-        </div>
       </div>
 
       <div style={{ padding: "32px 32px 52px" }}>
         <button onClick={() => goStep(1)} style={{ ...S.primaryBtn(), fontSize: 16, padding: "15px 0", boxShadow: "0 4px 16px rgba(0,0,0,0.25)", marginBottom: 12 }}>
           I am ready to change my life
         </button>
-        <p style={{ color: "#1A2D45", fontSize: 12, textAlign: "center", margin: 0 }}>Free forever. No credit card. No ads. No nonsense.</p>
+        <p style={{ color: T.textSub, fontSize: 13, textAlign: "center", margin: 0 }}>Free forever. No credit card. No ads. No nonsense.</p>
       </div>
     </div>
   );
@@ -1037,9 +1028,20 @@ function Onboarding({ onComplete }) {
         </div>
         <h2 style={{ color: T.text, fontSize: 24, fontWeight: 800, margin: "0 0 14px", letterSpacing: -0.5, lineHeight: 1.2 }}>{slide.title}</h2>
         <p style={{ color: T.textMid, fontSize: 15, lineHeight: 1.75, margin: "0 0 24px" }}>{slide.body}</p>
-        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "11px 14px", borderLeft: `3px solid ${slide.statColor}` }}>
-          <p style={{ color: slide.statColor, fontSize: 13, fontWeight: 600, margin: 0 }}>{slide.stat}</p>
-        </div>
+        {slide.statList ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {slide.statList.map(s => (
+              <div key={s.stat} style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${slide.accent}30`, borderRadius: 10, padding: "12px 14px" }}>
+                <p style={{ color: slide.accent, fontWeight: 800, fontSize: 20, margin: "0 0 4px", letterSpacing: -0.5 }}>{s.stat}</p>
+                <p style={{ color: T.textSub, fontSize: 11, margin: 0, lineHeight: 1.4 }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "11px 14px", borderLeft: `3px solid ${slide.statColor}` }}>
+            <p style={{ color: slide.statColor, fontSize: 13, fontWeight: 600, margin: 0 }}>{slide.stat}</p>
+          </div>
+        )}
       </div>
       <div>
         {slideIdx < SLIDES.length - 1 ? (
@@ -1050,7 +1052,7 @@ function Onboarding({ onComplete }) {
         ) : (
           <button onClick={() => goStep(3)} style={{ background: slide.accent, color: "#fff", border: "none", borderRadius: 8, padding: "13px 0", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 15, cursor: "pointer", width: "100%" }}>I am ready — let us build</button>
         )}
-        <p style={{ color: "rgba(255,255,255,0.12)", fontSize: 11, textAlign: "center", marginTop: 14 }}>{name} — Understanding the mission</p>
+        <p style={{ color: T.textSub, fontSize: 12, textAlign: "center", marginTop: 14 }}>{name} — Understanding the mission</p>
       </div>
     </div>
   );
@@ -1719,6 +1721,10 @@ function GoalCreationFlow({ onComplete, onCancel }) {
   const [form, setForm] = useState({ name: "", purpose: "", target: "", date: "", useLock: false, lockType: "date", cooldown: "24" });
   const [depositAmt, setDepositAmt] = useState("");
   const [privacy, setPrivacy] = useState({ isPublic: true, showAmount: true, showPercent: true });
+  const [homePrice, setHomePrice] = useState("");
+  const [downPct, setDownPct] = useState(20);
+  const [retireAnnualSpend, setRetireAnnualSpend] = useState("");
+  const [retireMultiple, setRetireMultiple] = useState(25);
 
   const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -1785,6 +1791,63 @@ function GoalCreationFlow({ onComplete, onCancel }) {
             <input value={form.target} onChange={e => upd("target", e.target.value)} type="number" placeholder="5000" style={{ ...S.input, paddingLeft: 28 }} />
           </div>
         </div>
+
+        {/* House Down Payment helper calculator */}
+        {cat?.name === "House Down Payment" && (
+          <div style={{ background: T.accentLo, border: `1px solid ${T.accent}30`, borderRadius: 10, padding: 14 }}>
+            <p style={{ color: T.accent, fontSize: 12, fontWeight: 700, margin: "0 0 10px" }}>Down Payment Calculator</p>
+            <label style={{ ...S.label, marginBottom: 6 }}>Estimated home price</label>
+            <div style={{ position: "relative", marginBottom: 10 }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={homePrice} onChange={e => setHomePrice(e.target.value)} type="number" placeholder="350000" style={{ ...S.input, paddingLeft: 28 }} />
+            </div>
+            <label style={{ ...S.label, marginBottom: 6 }}>Down payment percentage</label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: 12 }}>
+              {[3.5, 5, 10, 20].map(p => (
+                <button key={p} onClick={() => setDownPct(p)} style={{ background: downPct === p ? T.accent : "rgba(255,255,255,0.05)", border: downPct === p ? `1px solid ${T.accent}` : `1px solid ${T.border}`, borderRadius: 8, padding: "9px 0", cursor: "pointer", color: downPct === p ? "#fff" : T.textSub, fontSize: 12, fontWeight: 700, fontFamily: "'Inter',sans-serif" }}>{p}%</button>
+              ))}
+            </div>
+            {homePrice && parseFloat(homePrice) > 0 && (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+                  <span style={{ color: T.textSub, fontSize: 12 }}>{downPct}% of ${parseFloat(homePrice).toLocaleString()}</span>
+                  <span style={{ color: T.text, fontSize: 20, fontWeight: 900 }}>${Math.round(parseFloat(homePrice) * downPct / 100).toLocaleString()}</span>
+                </div>
+                <button onClick={() => upd("target", String(Math.round(parseFloat(homePrice) * downPct / 100)))} style={{ width: "100%", background: T.accent, border: "none", borderRadius: 999, padding: "10px 0", cursor: "pointer", color: "#fff", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13 }}>Use This as My Target</button>
+                <p style={{ color: T.textSub, fontSize: 10, margin: "8px 0 0", lineHeight: 1.5 }}>Conventional loans often require 20% to avoid PMI. FHA loans can go as low as 3.5%. VA and USDA loans may allow 0% down for eligible buyers.</p>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Retirement helper calculator */}
+        {cat?.name === "Retirement" && (
+          <div style={{ background: T.purpleLo, border: `1px solid ${T.purple}30`, borderRadius: 10, padding: 14 }}>
+            <p style={{ color: T.purple, fontSize: 12, fontWeight: 700, margin: "0 0 4px" }}>Not sure what number to use?</p>
+            <p style={{ color: T.textSub, fontSize: 11, margin: "0 0 10px", lineHeight: 1.5 }}>A common rule of thumb: save about 25 times what you plan to spend per year in retirement. This is a starting estimate, not financial advice.</p>
+            <label style={{ ...S.label, marginBottom: 6 }}>What do you expect to spend per year in retirement?</label>
+            <div style={{ position: "relative", marginBottom: 10 }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={retireAnnualSpend} onChange={e => setRetireAnnualSpend(e.target.value)} type="number" placeholder="40000" style={{ ...S.input, paddingLeft: 28 }} />
+            </div>
+            <label style={{ ...S.label, marginBottom: 6 }}>Multiplier</label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginBottom: 12 }}>
+              {[{ v: 20, l: "20x — lean" }, { v: 25, l: "25x — standard" }, { v: 30, l: "30x — cautious" }].map(o => (
+                <button key={o.v} onClick={() => setRetireMultiple(o.v)} style={{ background: retireMultiple === o.v ? T.purple : "rgba(255,255,255,0.05)", border: retireMultiple === o.v ? `1px solid ${T.purple}` : `1px solid ${T.border}`, borderRadius: 8, padding: "9px 2px", cursor: "pointer", color: retireMultiple === o.v ? "#fff" : T.textSub, fontSize: 11, fontWeight: 700, fontFamily: "'Inter',sans-serif" }}>{o.l}</button>
+              ))}
+            </div>
+            {retireAnnualSpend && parseFloat(retireAnnualSpend) > 0 && (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+                  <span style={{ color: T.textSub, fontSize: 12 }}>${parseFloat(retireAnnualSpend).toLocaleString()}/yr &times; {retireMultiple}</span>
+                  <span style={{ color: T.text, fontSize: 20, fontWeight: 900 }}>${Math.round(parseFloat(retireAnnualSpend) * retireMultiple).toLocaleString()}</span>
+                </div>
+                <button onClick={() => upd("target", String(Math.round(parseFloat(retireAnnualSpend) * retireMultiple)))} style={{ width: "100%", background: T.purple, border: "none", borderRadius: 999, padding: "10px 0", cursor: "pointer", color: "#fff", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13 }}>Use This as My Target</button>
+              </>
+            )}
+          </div>
+        )}
+
         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: form.useLock ? 14 : 0 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -3085,7 +3148,7 @@ function InvestTab() {
         );
       })}
 
-      <p style={{ color: "#1A2740", fontSize: 11, textAlign: "center" }}>Freedom Funds is not a registered investment advisor. Nothing here is financial advice. All investing involves risk.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>Freedom Funds is not a registered investment advisor. Nothing here is financial advice. All investing involves risk.</p>
 
       {detailInv && <InvestDetailModal inv={detailInv} onClose={() => setDetailInv(null)} onInvest={i => setVestInv(i)} />}
       {vestInv && <VestModal inv={vestInv} onClose={() => setVestInv(null)} onConfirm={handleConfirm} />}
@@ -3221,7 +3284,7 @@ function ProScreen({ onClose, onUpgrade, isPro }) {
         <button onClick={() => onUpgrade(plan)} style={{ ...S.primaryBtn(T.gold), fontSize: 15, padding: 15, boxShadow: "0 4px 16px rgba(0,0,0,0.25)" }}>
           Start Pro — {sel.price}{sel.period}
         </button>
-        <p style={{ color: "#1A2740", fontSize: 12, textAlign: "center", margin: "-8px 0 0" }}>No contracts. Cancel anytime. USD.</p>
+        <p style={{ color: T.textSub, fontSize: 13, textAlign: "center", margin: "-8px 0 0" }}>No contracts. Cancel anytime. USD.</p>
       </div>
     </div>
   );
@@ -3666,7 +3729,7 @@ function DealsTab() {
           </div>
         </button>
       ))}
-      <p style={{ color: "#1A2740", fontSize: 11, textAlign: "center" }}>Freedom Funds may earn a small referral fee from partner deals — always disclosed.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>Freedom Funds may earn a small referral fee from partner deals — always disclosed.</p>
 
       {selDeal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)", padding: 20 }} onClick={() => setSelDeal(null)}>
@@ -3836,7 +3899,7 @@ function AnalyticsTab() {
         </div>
       </div>
 
-      <p style={{ color: "#1A2740", fontSize: 11, textAlign: "center" }}>Statistics updated daily. All figures are aggregated and anonymized.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>Statistics updated daily. All figures are aggregated and anonymized.</p>
     </div>
   );
 }
@@ -4664,7 +4727,7 @@ function BillsTab({ profileSubs = [], initialBills = [], onPersist = () => {}, o
         })}
       </div>
 
-      <p style={{ color: "#1A2740", fontSize: 11, textAlign: "center" }}>Reminders are sent based on your notification settings. Autopay bills are tracked but not charged through Freedom Funds.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>Reminders are sent based on your notification settings. Autopay bills are tracked but not charged through Freedom Funds.</p>
 
       {/* Add/Edit modal */}
       {showAdd && <AddEditBillModal onClose={() => setShowAdd(false)} onSave={saveBill} />}
@@ -4840,13 +4903,23 @@ function NetWorthTab({ goals, profile, initialAssets = [], initialLiabs = [], on
       {/* Net worth hero */}
       <div style={{ ...S.card, background: isPositive ? "linear-gradient(135deg, #0D1B30 0%, #0A2218 100%)" : "linear-gradient(135deg, #1A0D18 0%, #0D1B30 100%)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: isPositive ? "rgba(29,217,160,0.07)" : "rgba(255,90,110,0.07)" }} />
-        <p style={{ color: T.textSub, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px" }}>Total Net Worth</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+          <p style={{ color: T.textSub, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", margin: 0 }}>Total Net Worth</p>
+          <InfoTip text="Net worth is everything you own (assets) minus everything you owe (liabilities). It's a snapshot, not a grade — most people start near zero or negative and build it over time." />
+        </div>
         <p style={{ color: isPositive ? T.green : T.red, fontWeight: 900, fontSize: 36, margin: "0 0 4px", letterSpacing: -1 }}>
           {isPositive ? "" : "-"}${Math.abs(netWorth).toLocaleString()}
         </p>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
           <Icon name={isPositive ? "arrowUp" : "arrowDown"} size={13} color={isPositive ? T.green : T.red} />
           <span style={{ color: isPositive ? T.green : T.red, fontSize: 12, fontWeight: 600 }}>+$900 from last month</span>
+        </div>
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "10px 12px", marginBottom: 18 }}>
+          <p style={{ color: T.textMid, fontSize: 12, margin: 0, lineHeight: 1.6 }}>
+            {isPositive
+              ? "You own more than you owe. Keep growing this by adding to savings, investments, or paying down what's below faster."
+              : "You currently owe more than you own. This is common, especially early on — the fastest way to move this number up is paying down what's below and building an emergency fund."}
+          </p>
         </div>
 
         {/* Trend chart */}
@@ -4922,12 +4995,19 @@ function NetWorthTab({ goals, profile, initialAssets = [], initialLiabs = [], on
 
       {/* Liabilities */}
       <div style={S.card}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <SectionLabel>Liabilities</SectionLabel>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <SectionLabel>Liabilities (what you owe)</SectionLabel>
+          </div>
           <button onClick={() => setShowAddL(true)} style={{ background: "rgba(255,90,110,0.1)", border: "1px solid rgba(255,90,110,0.25)", borderRadius: 8, padding: "4px 12px", cursor: "pointer", color: T.red, fontSize: 12, fontWeight: 700, fontFamily: "'Inter',sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
             <Icon name="plus" size={12} color={T.red} />Add
           </button>
         </div>
+        {liabilities.length === 0 && (
+          <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.6 }}>
+            Anything you owe money on — credit cards, student loans, a car loan, or a mortgage. If you don't have any, that's great — you can leave this empty.
+          </p>
+        )}
         {liabilities.map(l => (
           <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,90,110,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -4964,7 +5044,7 @@ function NetWorthTab({ goals, profile, initialAssets = [], initialLiabs = [], on
         )}
       </div>
 
-      <p style={{ color: "#1A2740", fontSize: 11, textAlign: "center" }}>Net worth is calculated from assets and liabilities you enter here. Connect your bank for automatic updates.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>Net worth is calculated from assets and liabilities you enter here. Connect your bank for automatic updates.</p>
       {editItem && (
         <div onClick={cancelEdit} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: T.card, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 22, width: "100%", maxWidth: 340 }}>
@@ -5149,7 +5229,7 @@ function DebtPayoffTab({ initialDebts = [], onPersistDebt = () => {}, onDeleteDe
         </button>
       )}
 
-      <p style={{ color: "#1A2740", fontSize: 11, textAlign: "center" }}>Payoff estimates assume consistent minimum payments plus extra. Interest calculations are approximate.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>Payoff estimates assume consistent minimum payments plus extra. Interest calculations are approximate.</p>
     </div>
   );
 }
@@ -8324,7 +8404,7 @@ function TaxEstimator({ profile }) {
           <p style={{ color: T.gold, fontSize: 12, margin: 0, lineHeight: 1.5 }}>Pay quarterly to the IRS at irs.gov/payments. Missing payments results in a penalty on top of what you owe.</p>
         </div>
       </div>
-      <p style={{ color: "#1A1940", fontSize: 11, textAlign: "center" }}>Estimates only. Consult a tax professional for your actual liability. Numbers based on 2024 brackets.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>Estimates only. Consult a tax professional for your actual liability. Numbers based on 2024 brackets.</p>
     </div>
   );
 }
