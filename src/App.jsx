@@ -3317,29 +3317,63 @@ function ProScreen({ onClose, onUpgrade, isPro }) {
 }
 
 // ── Weekly Spending Chart ─────────────────────────────────────────────────────
-function WeeklySpendingChart() {
+function WeeklySpendingChart({ checkInLog = [] }) {
   const [activeWeek, setActiveWeek] = useState(3); // default to current week
   const [hoverDay, setHoverDay] = useState(null);
 
-  const weeks = ["4 wks ago", "3 wks ago", "2 wks ago", "This week"];
+  const weeks = ["3 wks ago", "2 wks ago", "1 wk ago", "This week"];
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  // Simulated weekly spending data per category
-  const weeklyData = [
-    { groceries: [62, 0, 0, 88, 0, 45, 0], dining: [0, 34, 22, 0, 48, 62, 30], transport: [12, 12, 12, 12, 12, 0, 0], shopping: [0, 0, 120, 0, 0, 85, 0], entertainment: [0, 0, 0, 0, 45, 0, 80], other: [18, 22, 8, 14, 30, 12, 20] },
-    { groceries: [0, 0, 74, 0, 0, 92, 0], dining: [28, 0, 38, 0, 55, 42, 18], transport: [12, 12, 12, 12, 12, 0, 0], shopping: [0, 65, 0, 0, 0, 0, 44], entertainment: [0, 0, 0, 38, 0, 90, 0], other: [10, 15, 25, 8, 22, 18, 12] },
-    { groceries: [0, 55, 0, 0, 78, 0, 0], dining: [0, 42, 0, 55, 0, 78, 35], transport: [12, 12, 12, 12, 12, 0, 0], shopping: [0, 0, 0, 95, 0, 0, 60], entertainment: [0, 0, 55, 0, 0, 40, 70], other: [20, 8, 14, 22, 10, 28, 16] },
-    { groceries: [88, 0, 0, 0, 65, 0, 0], dining: [0, 28, 45, 0, 32, 55, 0], transport: [12, 12, 12, 12, 12, 0, 0], shopping: [0, 0, 0, 0, 0, 110, 0], entertainment: [0, 0, 0, 42, 0, 0, 65], other: [14, 18, 12, 8, 24, 16, 10] },
-  ];
-
   const cats = [
-    { key: "groceries",    label: "Groceries",     color: T.green  },
-    { key: "dining",       label: "Dining Out",    color: T.gold   },
-    { key: "transport",    label: "Transport",     color: T.accent },
-    { key: "shopping",     label: "Shopping",      color: T.purple },
-    { key: "entertainment",label: "Entertainment", color: T.red    },
-    { key: "other",        label: "Other",         color: T.textSub},
+    { key: "Food",          label: "Food",          color: T.green  },
+    { key: "Transport",     label: "Transport",     color: T.accent },
+    { key: "Shopping",      label: "Shopping",      color: T.purple },
+    { key: "Entertainment", label: "Entertainment", color: T.red    },
+    { key: "Health",        label: "Health",        color: T.teal   },
+    { key: "Other",         label: "Other",         color: T.textSub},
   ];
+  const catKeys = cats.map(c => c.key);
+
+  const parseEntryDate = (str) => {
+    if (!str) return null;
+    const isIso = /^\d{4}-\d{2}-\d{2}$/.test(str);
+    const d = new Date(isIso ? `${str}T00:00:00` : str);
+    return isNaN(d) ? null : d;
+  };
+
+  // Monday that starts the week containing the given date (local time)
+  const startOfWeek = (d) => {
+    const date = new Date(d);
+    const day = date.getDay(); // 0 = Sun ... 6 = Sat
+    const diff = day === 0 ? -6 : 1 - day;
+    date.setDate(date.getDate() + diff);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  };
+
+  const thisWeekStart = startOfWeek(new Date());
+
+  // Real weekly totals built from actual logged check-ins — no simulated data.
+  // Shape matches what the chart below expects: weekObj[categoryKey][dayIndex]
+  const weeklyData = [3, 2, 1, 0].map(offset => {
+    const weekStart = new Date(thisWeekStart);
+    weekStart.setDate(weekStart.getDate() - offset * 7);
+    const weekObj = Object.fromEntries(catKeys.map(k => [k, [0, 0, 0, 0, 0, 0, 0]]));
+
+    checkInLog.forEach(entry => {
+      const d = parseEntryDate(entry.date);
+      if (!d) return;
+      const diffDays = Math.floor((d - weekStart) / 86400000);
+      if (diffDays >= 0 && diffDays < 7) {
+        const catKey = catKeys.includes(entry.category) ? entry.category : "Other";
+        weekObj[catKey][diffDays] += parseFloat(entry.amount) || 0;
+      }
+    });
+
+    return weekObj;
+  });
+
+  const hasAnyData = weeklyData.some(w => catKeys.some(k => w[k].some(v => v > 0)));
 
   const week = weeklyData[activeWeek];
 
@@ -3366,6 +3400,11 @@ function WeeklySpendingChart() {
 
   return (
     <div style={S.card}>
+      {!hasAnyData && (
+        <div style={{ background: T.accentLo, border: `1px solid ${T.accent}25`, borderRadius: 8, padding: 10, marginBottom: 12 }}>
+          <p style={{ color: T.accent, fontSize: 12, margin: 0, lineHeight: 1.5 }}>Log a daily check-in to start seeing your real weekly spending here.</p>
+        </div>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
         <div>
           <SectionLabel>Weekly Spending</SectionLabel>
@@ -3483,7 +3522,7 @@ function WeeklySpendingChart() {
 }
 
 // ── Profile Tab ───────────────────────────────────────────────────────────────
-function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = null, onSaveProfile = () => {}, onDeleteAccount = null }) {
+function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = null, onSaveProfile = () => {}, onDeleteAccount = null, checkInLog = [], streak = 0, joinDate = null }) {
   const [legal, setLegal] = useState(null);
   const [delStep, setDelStep] = useState(0);
   const [delBusy, setDelBusy] = useState(false);
@@ -3554,7 +3593,7 @@ function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = nu
         <div style={{ width: 60, height: 60, borderRadius: "50%", background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700, color: "#fff", border: `2px solid ${T.accent}50` }}>{initials}</div>
         <div style={{ textAlign: "center" }}>
           <h3 style={{ color: T.text, fontSize: 18, fontWeight: 700, margin: "0 0 3px" }}>{userName || "My Profile"}</h3>
-          <p style={{ color: T.textSub, fontSize: 12, margin: 0 }}>Member since May 2026 &middot; 7-day streak</p>
+          <p style={{ color: T.textSub, fontSize: 12, margin: 0 }}>{joinDate ? `Member since ${joinDate}` : "Welcome"} &middot; {streak}-day streak</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, width: "100%" }}>
           {[{ label: "Goals", value: goals.length }, { label: "Total Saved", value: `$${totalSaved.toLocaleString()}` }, { label: "Freedom", value: `${overallPct}%` }].map(s => (
@@ -3575,7 +3614,7 @@ function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = nu
         <p style={{ color: T.textSub, fontSize: 11, margin: "8px 0 0", textAlign: "center" }}>${totalSaved.toLocaleString()} saved toward ${totalTarget.toLocaleString()} in total goals</p>
       </div>
 
-      <WeeklySpendingChart />
+      <WeeklySpendingChart checkInLog={checkInLog} />
 
       <div style={S.card}>
         <SectionLabel>Goal Summary</SectionLabel>
@@ -11351,7 +11390,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab initialHoldings={dbHoldings} onPersistHolding={persistHolding} onDeleteHolding={removeHoldingDb} /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
       {tab === "deals" && <div style={{ paddingTop: 16 }}><DealsTab /></div>}
-      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setAuthReady(true); }} /></div>}
+      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setAuthReady(true); }} /></div>}
 
       {/* Bottom Nav — primary 6 tabs + More */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(8,9,26,0.97)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(123,110,246,0.15)", zIndex: 100, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)" }}>
@@ -11398,7 +11437,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       <DepositModal goal={depositGoal} onClose={() => setDepositGoal(null)} />
       {privacyGoal && <PrivacyModal goal={privacyGoal} onClose={() => setPrivacyGoal(null)} onSave={handlePrivacySave} />}
       {editGoal && <EditGoalModal goal={editGoal} onClose={() => setEditGoal(null)} onSave={handleGoalSave} onDelete={handleGoalDelete} />}
-      {showCheckIn && <DailyCheckIn profile={profile} goals={goals} onClose={() => setShowCheckIn(false)} onLog={async entry => { const newEntry = { ...entry, date: new Date().toLocaleDateString() }; setCheckInLog(p => [...p, newEntry]); setStreak(s => s + 1); await logCheckIn(entry); }} />}
+      {showCheckIn && <DailyCheckIn profile={profile} goals={goals} onClose={() => setShowCheckIn(false)} onLog={async entry => { const newEntry = { ...entry, date: new Date().toISOString().split("T")[0] }; setCheckInLog(p => [...p, newEntry]); setStreak(s => s + 1); await logCheckIn(entry); }} />}
       {showNotifications && <NotificationCenter notifications={notifications} onClose={() => setShowNotifications(false)} onRead={markRead} onReadAll={markAllRead} onNavigate={t => setTab(t)} onOpenSettings={() => { setShowNotifications(false); setShowNotifSettings(true); }} />}
       {showNotifSettings && <NotificationSettings onClose={() => setShowNotifSettings(false)} />}
     </div>
