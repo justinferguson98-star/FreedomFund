@@ -3225,8 +3225,8 @@ function InvestTab({ initialHoldings = [], onPersistHolding = () => {}, onDelete
 function ProScreen({ onClose, onUpgrade, isPro }) {
   const [plan, setPlan] = useState("yearly");
   const pricing = {
-    monthly: { label: "Monthly", price: "$3.99", period: "/mo", sub: "$47.88 billed annually" },
-    yearly: { label: "Annual", price: "$29.99", period: "/yr", sub: "$2.50/month equivalent", save: "37% off" },
+    monthly: { label: "Monthly", price: "$6.99", period: "/mo", sub: "$83.88 per year if paid monthly" },
+    yearly: { label: "Annual", price: "$50", period: "/yr", sub: "$4.17/month equivalent", save: "40% off" },
   };
   const sel = pricing[plan];
   const features = ["Unlimited savings goals", "Advanced savings schedule", "Full community participation", "Complete budget tracker", "PDF progress reports", "Goal streak tracking", "Priority support", "Early feature access"];
@@ -3275,6 +3275,12 @@ function ProScreen({ onClose, onUpgrade, isPro }) {
         <p style={{ color: T.textSub, fontSize: 13, margin: 0, lineHeight: 1.6 }}>Everything you need to accelerate your financial independence.</p>
       </div>
       <div style={{ padding: "0 20px 100px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ background: "rgba(245,166,35,0.1)", border: `1px solid ${T.gold}35`, borderRadius: 10, padding: "10px 12px", display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <Icon name="info" size={14} color={T.gold} strokeWidth={2} />
+          <p style={{ color: T.textMid, fontSize: 11, margin: 0, lineHeight: 1.6 }}>
+            <strong style={{ color: T.gold }}>Coming soon.</strong> Billing isn't live yet — pricing shown below is a preview of what Pro will cost.
+          </p>
+        </div>
         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 5, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
           {["monthly", "yearly"].map(p => (
             <button key={p} onClick={() => setPlan(p)} style={{ borderRadius: 7, padding: "10px 0", border: "none", cursor: "pointer", fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 13, background: plan === p ? T.gold : "transparent", color: plan === p ? "#0F172A" : T.textSub, position: "relative" }}>
@@ -3325,7 +3331,7 @@ function ProScreen({ onClose, onUpgrade, isPro }) {
           <p style={{ color: T.textSub, fontSize: 12, margin: 0, lineHeight: 1.6 }}>Your Pro subscription funds free access to Freedom Funds in high school classrooms nationwide.</p>
         </div>
         <button onClick={() => onUpgrade(plan)} style={{ ...S.primaryBtn(T.gold), fontSize: 15, padding: 15, boxShadow: "0 4px 16px rgba(0,0,0,0.25)" }}>
-          Start Pro — {sel.price}{sel.period}
+          Preview Pro — {sel.price}{sel.period} (No Charge Yet)
         </button>
         <p style={{ color: T.textSub, fontSize: 13, textAlign: "center", margin: "-8px 0 0" }}>No contracts. Cancel anytime. USD.</p>
       </div>
