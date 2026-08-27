@@ -5659,26 +5659,32 @@ function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], p
     });
   }
 
-  // 4. Overspending alert
-  const monthlyDining = 380;
+  // 4. Overspending alert — real dining spend vs a reasonable benchmark
+  const today30 = new Date(); today30.setDate(today30.getDate() - 30);
+  const recentDiningLogged = checkInLog.filter(e => e.category === "Food" && new Date(e.date) >= today30).reduce((a, e) => a + (parseFloat(e.amount) || 0), 0);
+  const monthlyDining = recentDiningLogged > 0 ? Math.round(recentDiningLogged) : Math.round((profile?.diningOut || 0) * 4.33);
   const targetDining = 200;
   if (monthlyDining > targetDining) {
     notifications.push({
       id: "overspend-dining", type: "overspend", read: true,
       title: "Dining out is running high",
-      body: `You have spent $${monthlyDining} on dining this month. Your target is $${targetDining}. You are $${monthlyDining - targetDining} over with ${28 - currentDay} days left.`,
+      body: `You have spent about $${monthlyDining} on dining this month. A common target is $${targetDining}. That is $${monthlyDining - targetDining} over, with ${28 - currentDay} days left.`,
       time: "3d", priority: "normal", action: "home",
     });
   }
 
-  // 5. Weekly summary (Sundays)
+  // 5. Weekly summary (Sundays) — built from real check-ins and real streak
   if (dayOfWeek === 0) {
-    notifications.push({
-      id: "weekly-summary", type: "weekly_summary", read: false,
-      title: "Your weekly financial summary",
-      body: "This week: $860 saved, $2,640 spent, 7-day streak maintained. You are on track. Tap to see the full breakdown.",
-      time: "Today", priority: "normal", action: "profile",
-    });
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekSpent = Math.round(checkInLog.filter(e => new Date(e.date) >= weekAgo).reduce((a, e) => a + (parseFloat(e.amount) || 0), 0));
+    if (weekSpent > 0 || streak > 0) {
+      notifications.push({
+        id: "weekly-summary", type: "weekly_summary", read: false,
+        title: "Your weekly financial summary",
+        body: `This week: $${weekSpent.toLocaleString()} logged in check-ins, ${streak}-day streak maintained. Tap to see the full breakdown.`,
+        time: "Today", priority: "normal", action: "profile",
+      });
+    }
   }
 
   // 6. Payday reminder
@@ -5693,13 +5699,16 @@ function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], p
     });
   }
 
-  // 7. Savings insight
-  notifications.push({
-    id: "savings-insight-subs", type: "savings_tip", read: true,
-    title: "You could save $1,560 more per year",
-    body: "Cutting your dining out spend in half ($190/mo in savings) would fully fund your Emergency Fund 6 months faster.",
-    time: "5d", priority: "normal", action: "whatif",
-  });
+  // 7. Savings insight — based on real dining spend, only shown when it's actually elevated
+  if (monthlyDining > targetDining) {
+    const potentialAnnualSavings = Math.round((monthlyDining - targetDining) * 12);
+    notifications.push({
+      id: "savings-insight-subs", type: "savings_tip", read: true,
+      title: `You could save $${potentialAnnualSavings.toLocaleString()} more per year`,
+      body: `Bringing dining out down to around $${targetDining}/mo would free up about $${monthlyDining - targetDining}/mo — that adds up over a year.`,
+      time: "5d", priority: "normal", action: "whatif",
+    });
+  }
 
   // 8. Quarterly tax reminder
   const month = today.getMonth();
@@ -11234,14 +11243,38 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
             </div>
             {(() => {
               const W = 340, H = 90;
-              const months = ["Jan","Feb","Mar","Apr","May","Jun"];
-              const income = [3800,4000,3900,4200,4100,4200];
-              const spent  = [3100,3300,2900,2800,3000,2640];
-              const saved  = [700,700,1000,1400,1100,860];
+              // Build the last 6 real calendar months, ending with the current month
+              const now = new Date();
+              const monthKeys = Array.from({ length: 6 }, (_, i) => {
+                const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+                return { label: d.toLocaleDateString([], { month: "short" }), y: d.getFullYear(), m: d.getMonth() };
+              });
+              const spentByMonth = monthKeys.map(({ y, m }) =>
+                Math.round(checkInLog.reduce((sum, e) => {
+                  const d = new Date(e.date);
+                  if (isNaN(d) || d.getFullYear() !== y || d.getMonth() !== m) return sum;
+                  return sum + (parseFloat(e.amount) || 0);
+                }, 0))
+              );
+              const monthsWithData = spentByMonth.filter(v => v > 0).length;
+              const hasEnoughData = monthsWithData >= 2;
+
+              if (!hasEnoughData) {
+                return (
+                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 10, padding: 16, textAlign: "center" }}>
+                    <p style={{ color: T.textSub, fontSize: 12, margin: 0, lineHeight: 1.6 }}>Log daily check-ins across a couple of months and your real income, spending, and savings trend will show up here.</p>
+                  </div>
+                );
+              }
+
+              const months = monthKeys.map(k => k.label);
+              const income = monthKeys.map(() => monthlyIncome); // real monthly income; no historical income tracking yet, so shown flat
+              const spent  = spentByMonth;
+              const saved  = income.map((inc, i) => inc - spent[i]);
               const allVals = [...income,...spent,...saved];
               const min = Math.min(...allVals) * 0.8;
               const max = Math.max(...allVals) * 1.05;
-              const norm = (v) => H - ((v - min) / (max - min)) * H;
+              const norm = (v) => H - ((v - min) / (max - min || 1)) * H;
               const pathFor = (arr) => arr.map((v,i) => `${(i/(arr.length-1))*W},${norm(v)}`).join(" ");
               return (
                 <div>
@@ -11257,8 +11290,9 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
                     ))}
                   </svg>
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
-                    {months.map(m => <span key={m} style={{ color: T.textSub, fontSize: 9 }}>{m}</span>)}
+                    {months.map((m, i) => <span key={`${m}-${i}`} style={{ color: T.textSub, fontSize: 9 }}>{m}</span>)}
                   </div>
+                  <p style={{ color: T.textSub, fontSize: 9, margin: "8px 0 0", textAlign: "center" }}>"Spent" reflects logged check-ins only, not your full budget.</p>
                 </div>
               );
             })()}
