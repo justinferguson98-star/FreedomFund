@@ -10802,7 +10802,7 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
   );
   if (screen === "quickstart") return <QuickStartOnboarding onComplete={p => { handleOnboardingComplete(p); if (p.firstGoal) { const newGoal = { id: Date.now(), ...p.firstGoal, saved: 0, color: T.purple, icon: "target", purpose: "My first goal", isPublic: false }; setGoals(prev => [...prev, newGoal]); saveGoal(newGoal); } }} onFullOnboarding={() => setScreen("fullonboarding")} />;
   if (screen === "fullonboarding") return <>{fonts}<Onboarding onComplete={handleOnboardingComplete} /></>;
-if (screen === "newGoal") return <><fonts><GoalCreationFlow onComplete={g => { if (g) { setGoals(p => [...p, g]); saveGoal(g); } setScreen("app"); setTab("goals"); }} onCancel={() => setScreen("app")} /></>;
+if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { if (g) { setGoals(p => [...p, g]); saveGoal(g); } setScreen("app"); setTab("goals"); }} onCancel={() => setScreen("app")} /></>;
   if (screen === "pro") return <>{fonts}<ProScreen isPro={isPro} onClose={() => setScreen("app")} onUpgrade={() => { setIsPro(true); setScreen("app"); }} /></>;
 
   return (
