@@ -5319,11 +5319,32 @@ function DebtPayoffTab({ initialDebts = [], onPersistDebt = () => {}, onDeleteDe
 }
 
 // ── Financial Health Score ────────────────────────────────────────────────────
-function HealthScore({ goals, profile }) {
-  const mo = profile?.monthlyIncome || 4200;
+function HealthScore({ goals, profile, debts = [], bills = [], checkInLog = [] }) {
+  const mo = profile?.monthlyIncome || 0;
   const totalSaved = goals.reduce((a, g) => a + g.saved, 0);
   const emergFund = goals.find(g => g.name.toLowerCase().includes("emergency"));
-  const months = emergFund ? emergFund.saved / (mo * 0.6) : 0;
+  const months = emergFund && mo > 0 ? emergFund.saved / (mo * 0.6) : 0;
+
+  // Real savings rate from the user's actual budget, not a hardcoded number
+  const realSaved = Math.max(0, mo - (profile?.totalFixed || 0) - (profile?.totalVariable || 0));
+  const realSavingsRate = mo > 0 ? realSaved / mo : 0;
+
+  // Real debt-to-income ratio from actual tracked debts
+  const totalMinPayments = debts.reduce((a, d) => a + (Number(d.minPayment) || 0), 0);
+  const dti = mo > 0 ? totalMinPayments / mo : 0;
+
+  // Real bill payment rate this month from actual bills
+  const today = new Date();
+  const mk = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  const paidCount = bills.filter(b => (b.paidMonths || []).includes(mk)).length;
+  const hasBillData = bills.length > 0;
+  const billPaidPct = hasBillData ? paidCount / bills.length : null;
+
+  // Real spending control this month vs the user's own budget
+  const monthEntries = checkInLog.filter(e => { const d = new Date(e.date); return !isNaN(d) && d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth(); });
+  const loggedThisMonth = monthEntries.reduce((a, e) => a + (parseFloat(e.amount) || 0), 0);
+  const hasSpendData = monthEntries.length > 0 && (profile?.totalVariable || 0) > 0;
+  const spendRatio = hasSpendData ? loggedThisMonth / profile.totalVariable : null;
 
   const scores = [
     {
@@ -5337,39 +5358,39 @@ function HealthScore({ goals, profile }) {
     },
     {
       label: "Savings Rate",
-      score: Math.min(100, Math.round((profile?.monthlyIncome ? 860 / mo * 100 / 20 * 100 : 50))),
+      score: Math.min(100, Math.round(realSavingsRate / 0.20 * 100)),
       weight: 25,
       color: T.accent,
       icon: "trendUp",
-      grade: 860 / mo >= 0.2 ? "A" : 860 / mo >= 0.1 ? "B" : 860 / mo >= 0.05 ? "C" : "D",
-      tip: `You are saving ${Math.round(860 / mo * 100)}% of income. Target is 20%+.`,
+      grade: realSavingsRate >= 0.20 ? "A" : realSavingsRate >= 0.10 ? "B" : realSavingsRate >= 0.05 ? "C" : "D",
+      tip: `You are saving ${Math.round(realSavingsRate * 100)}% of income. Target is 20%+.`,
     },
     {
       label: "Debt Load",
-      score: 62,
+      score: totalMinPayments === 0 ? 100 : dti < 0.10 ? 90 : dti < 0.20 ? 75 : dti < 0.36 ? 55 : 30,
       weight: 25,
       color: T.gold,
       icon: "wallet",
-      grade: "C",
-      tip: "Your debt-to-income ratio is moderate. Focus on high-interest debt first.",
+      grade: totalMinPayments === 0 ? "A" : dti < 0.10 ? "A" : dti < 0.20 ? "B" : dti < 0.36 ? "C" : "D",
+      tip: totalMinPayments === 0 ? "You have no tracked debt. Excellent position." : `Your minimum debt payments are about ${Math.round(dti * 100)}% of income. Target is under 20%.`,
     },
     {
       label: "Bill Payment",
-      score: 90,
+      score: hasBillData ? Math.round(billPaidPct * 100) : 50,
       weight: 15,
       color: T.purple,
       icon: "calendar",
-      grade: "A",
-      tip: "Bills paid consistently on time. Excellent payment history.",
+      grade: !hasBillData ? "—" : billPaidPct >= 0.95 ? "A" : billPaidPct >= 0.8 ? "B" : billPaidPct >= 0.6 ? "C" : "D",
+      tip: !hasBillData ? "Add your bills on the Bills tab to start tracking your payment record." : `You've paid ${paidCount} of ${bills.length} bills so far this month.`,
     },
     {
       label: "Spending Control",
-      score: 70,
+      score: !hasSpendData ? 50 : spendRatio <= 1 ? 90 : spendRatio <= 1.15 ? 75 : spendRatio <= 1.35 ? 55 : 30,
       weight: 10,
       color: T.blue,
       icon: "barChart",
-      grade: "B",
-      tip: "Spending is mostly on target. Watch dining and subscriptions.",
+      grade: !hasSpendData ? "—" : spendRatio <= 1 ? "A" : spendRatio <= 1.15 ? "B" : spendRatio <= 1.35 ? "C" : "D",
+      tip: !hasSpendData ? "Log daily check-ins to track your spending against your budget." : `You've logged $${Math.round(loggedThisMonth).toLocaleString()} this month against a $${Math.round(profile.totalVariable).toLocaleString()} variable budget.`,
     },
   ];
 
@@ -6261,32 +6282,54 @@ function FinancialCalendar({ goals, bills = [], checkInLog = [], profile }) {
 }
 
 // ── Annual Financial Review ───────────────────────────────────────────────────
-function AnnualReview({ goals, profile, checkInLog, streak }) {
+function AnnualReview({ goals, profile, checkInLog, streak, bills = [], netWorthSnapshots = [] }) {
   const year = new Date().getFullYear();
   const [slide, setSlide] = useState(0);
   const [animKey, setAnimKey] = useState(0);
 
-  const mo = profile?.monthlyIncome || 4200;
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+  const mo = profile?.monthlyIncome || 0;
   const totalIncome       = mo * 12;
   const totalSaved        = goals.reduce((a, g) => a + g.saved, 0);
-  const totalSpent        = Math.round(totalIncome * 0.63);
   const goalsCompleted    = goals.filter(g => g.saved >= g.target).length;
-  const savingsRate       = Math.round((totalSaved / totalIncome) * 100);
-  const bestMonth         = "March";
-  const bestMonthSaved    = 1240;
-  const worstMonth        = "December";
-  const worstMonthSaved   = 320;
-  const streakBest        = Math.max(streak, 14);
-  const checkInsTotal     = checkInLog.length + 287; // simulated full year
-  const netWorthChange    = 4800;
-  const topCategory       = "Housing";
-  const topCategoryAmt    = Math.round(totalSpent * 0.38);
+  const savingsRate       = totalIncome > 0 ? Math.round((totalSaved / totalIncome) * 100) : 0;
   const mostSavedGoal     = goals.reduce((a, g) => g.saved > (a?.saved || 0) ? g : a, goals[0]);
-  const subsSaved         = 0;
-  const rank              = "Top 18%";
 
-  const totalBills = 12 * (1450 + 94 + 69 + 142 + 380 + 210 + 85 + 15);
-  const savedVsLastYear   = Math.round(totalSaved * 0.28);
+  // Only count check-ins actually logged this calendar year — no padding, no simulation
+  const yearEntries = checkInLog.filter(e => { const d = new Date(e.date); return !isNaN(d) && d.getFullYear() === year; });
+  const hasSpendingData = yearEntries.length > 0;
+  const totalSpent = Math.round(yearEntries.reduce((a, e) => a + (parseFloat(e.amount) || 0), 0));
+
+  // Real annualized bills from what the user actually entered, not an invented breakdown
+  const totalBills = Math.round(bills.reduce((a, b) => a + (Number(b.amount) || 0), 0) * 12);
+
+  const streakBest = streak;
+  const checkInsTotal = checkInLog.length;
+
+  // Best/worst month — only shown once check-ins span at least 2 distinct months
+  const monthSums = {};
+  yearEntries.forEach(e => { const m = new Date(e.date).getMonth(); monthSums[m] = (monthSums[m] || 0) + (parseFloat(e.amount) || 0); });
+  const monthEntries = Object.entries(monthSums);
+  const hasMonthComparison = monthEntries.length >= 2;
+  let bestMonth = null, bestMonthSaved = 0, worstMonth = null, worstMonthSaved = 0;
+  if (hasMonthComparison) {
+    const sorted = [...monthEntries].sort((a, b) => a[1] - b[1]);
+    bestMonth = monthNames[sorted[0][0]]; bestMonthSaved = Math.round(sorted[0][1]);
+    worstMonth = monthNames[sorted[sorted.length - 1][0]]; worstMonthSaved = Math.round(sorted[sorted.length - 1][1]);
+  }
+
+  // Real net worth change — only shown with at least 2 snapshots from this year
+  const yearSnaps = netWorthSnapshots.filter(s => s.date && s.date.startsWith(String(year))).sort((a, b) => a.date.localeCompare(b.date));
+  const hasNetWorthHistory = yearSnaps.length >= 2;
+  const netWorthChange = hasNetWorthHistory ? Math.round(yearSnaps[yearSnaps.length - 1].netWorth - yearSnaps[0].netWorth) : null;
+
+  // Real top spending category from actual logged check-ins
+  const catSums = {};
+  yearEntries.forEach(e => { catSums[e.category] = (catSums[e.category] || 0) + (parseFloat(e.amount) || 0); });
+  const catEntries = Object.entries(catSums).sort((a, b) => b[1] - a[1]);
+  const topCategory = catEntries[0]?.[0] || null;
+  const topCategoryAmt = catEntries[0] ? Math.round(catEntries[0][1]) : 0;
 
   // Slides — each is a full-screen "wrapped" card
   const slides = [
@@ -6336,6 +6379,9 @@ function AnnualReview({ goals, profile, checkInLog, streak }) {
             ))}
           </div>
           <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, margin: 0, lineHeight: 1.6 }}>You saved <strong style={{ color: T.green }}>{savingsRate}%</strong> of everything you earned. The national average is 4.6%.</p>
+          {!hasSpendingData && (
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, margin: "10px 0 0" }}>"Spent" reflects only what you've logged in daily check-ins so far.</p>
+          )}
         </div>
       ),
     },
@@ -6365,12 +6411,6 @@ function AnnualReview({ goals, profile, checkInLog, streak }) {
               );
             })}
           </div>
-          {savedVsLastYear > 0 && (
-            <div style={{ background: "rgba(0,210,160,0.1)", border: "1px solid rgba(0,210,160,0.25)", borderRadius: 12, padding: 14 }}>
-              <p style={{ color: T.green, fontWeight: 700, fontSize: 14, margin: "0 0 4px" }}>Up ${savedVsLastYear.toLocaleString()} from last year</p>
-              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, margin: 0 }}>You are accelerating. Keep going.</p>
-            </div>
-          )}
         </div>
       ),
     },
@@ -6386,7 +6426,6 @@ function AnnualReview({ goals, profile, checkInLog, streak }) {
               { label: "Check-ins logged",    value: checkInsTotal,        color: T.gold,   icon: "check"      },
               { label: "Best streak",          value: `${streakBest} days`, color: T.orange, icon: "fire"       },
               { label: "Goals hit",            value: goalsCompleted,       color: T.green,  icon: "award"      },
-              { label: "Community rank",       value: rank,                 color: T.purple, icon: "users"      },
             ].map(s => (
               <div key={s.label} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "16px 12px" }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: `${s.color}18`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
@@ -6397,11 +6436,17 @@ function AnnualReview({ goals, profile, checkInLog, streak }) {
               </div>
             ))}
           </div>
-          <div style={{ background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.2)", borderRadius: 12, padding: 14 }}>
-            <p style={{ color: T.gold, fontWeight: 700, fontSize: 14, margin: "0 0 5px" }}>Best month: {bestMonth}</p>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, margin: "0 0 5px" }}>You saved <strong style={{ color: T.gold }}>${bestMonthSaved}</strong> in a single month</p>
-            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, margin: 0 }}>Worst month: {worstMonth} (${worstMonthSaved} saved — but you kept going)</p>
-          </div>
+          {hasMonthComparison ? (
+            <div style={{ background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.2)", borderRadius: 12, padding: 14 }}>
+              <p style={{ color: T.gold, fontWeight: 700, fontSize: 14, margin: "0 0 5px" }}>Lowest spending month: {bestMonth}</p>
+              <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, margin: "0 0 5px" }}>You logged <strong style={{ color: T.gold }}>${bestMonthSaved}</strong> in check-ins that month</p>
+              <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, margin: 0 }}>Highest spending month: {worstMonth} (${worstMonthSaved} logged)</p>
+            </div>
+          ) : (
+            <div style={{ background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.2)", borderRadius: 12, padding: 14 }}>
+              <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, margin: 0, lineHeight: 1.6 }}>Log daily check-ins across a few months and we'll show you your best and toughest months here.</p>
+            </div>
+          )}
         </div>
       ),
     },
@@ -6409,24 +6454,21 @@ function AnnualReview({ goals, profile, checkInLog, streak }) {
       id: "spending",
       bg: "linear-gradient(160deg, #1A0A08 0%, #0F0E2A 100%)",
       accent: T.orange,
-      content: (
+      content: hasSpendingData ? (
         <div style={{ textAlign: "center", padding: "0 24px" }}>
           <p style={{ color: T.orange, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 12px" }}>Where It Went</p>
-          <p style={{ color: T.textMid, fontSize: 14, margin: "0 0 20px", lineHeight: 1.6 }}>Your biggest spending category in {year}</p>
+          <p style={{ color: T.textMid, fontSize: 14, margin: "0 0 20px", lineHeight: 1.6 }}>Your biggest logged spending category in {year}</p>
           <div style={{ width: 90, height: 90, borderRadius: 24, background: `${T.orange}18`, border: `1px solid ${T.orange}30`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
             <Icon name="building" size={40} color={T.orange} strokeWidth={1.5} />
           </div>
           <p style={{ color: "#fff", fontWeight: 900, fontSize: 28, margin: "0 0 4px" }}>{topCategory}</p>
           <p style={{ color: T.orange, fontWeight: 800, fontSize: 22, margin: "0 0 24px" }}>${topCategoryAmt.toLocaleString()}</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[
-              { label: "Housing",      pct: 38, color: T.orange  },
-              { label: "Food",         pct: 12, color: T.gold    },
-              { label: "Transport",    pct: 8,  color: T.green   },
-              { label: "Subscriptions",pct: 5,  color: T.purple  },
-              { label: "Shopping",     pct: 9,  color: T.accent  },
-              { label: "Other",        pct: 28, color: T.textSub },
-            ].map(c => (
+            {(() => {
+              const catColors = { Food: T.green, Transport: T.accent, Shopping: T.purple, Entertainment: T.red, Health: T.teal, Other: T.textSub };
+              const total = catEntries.reduce((a, [, v]) => a + v, 0) || 1;
+              return catEntries.map(([label, val]) => ({ label, pct: Math.round((val / total) * 100), color: catColors[label] || T.textSub }));
+            })().map(c => (
               <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ color: T.textMid, fontSize: 12, width: 90, textAlign: "right", flexShrink: 0 }}>{c.label}</span>
                 <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", borderRadius: 99, height: 8 }}>
@@ -6437,25 +6479,30 @@ function AnnualReview({ goals, profile, checkInLog, streak }) {
             ))}
           </div>
         </div>
+      ) : (
+        <div style={{ textAlign: "center", padding: "0 24px" }}>
+          <p style={{ color: T.orange, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 12px" }}>Where It Went</p>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.7, margin: 0 }}>Log daily check-ins throughout the year and we'll show your real spending breakdown here.</p>
+        </div>
       ),
     },
     {
       id: "networth",
       bg: "linear-gradient(160deg, #0A1A0A 0%, #0F0E2A 100%)",
       accent: T.green,
-      content: (
+      content: hasNetWorthHistory ? (
         <div style={{ textAlign: "center", padding: "0 24px" }}>
           <p style={{ color: T.green, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 12px" }}>Net Worth</p>
-          <p style={{ color: T.textMid, fontSize: 14, margin: "0 0 8px" }}>Your net worth grew by</p>
-          <p style={{ color: T.green, fontWeight: 900, fontSize: 52, margin: "0 0 4px", letterSpacing: -2 }}>+${netWorthChange.toLocaleString()}</p>
+          <p style={{ color: T.textMid, fontSize: 14, margin: "0 0 8px" }}>Your net worth {netWorthChange >= 0 ? "grew by" : "changed by"}</p>
+          <p style={{ color: netWorthChange >= 0 ? T.green : T.red, fontWeight: 900, fontSize: 52, margin: "0 0 4px", letterSpacing: -2 }}>{netWorthChange >= 0 ? "+" : "-"}${Math.abs(netWorthChange).toLocaleString()}</p>
           <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, margin: "0 0 28px" }}>in {year}</p>
-          {/* Mini trend chart */}
+          {/* Real trend chart from actual snapshots logged this year */}
           <div style={{ background: "rgba(0,210,160,0.06)", border: "1px solid rgba(0,210,160,0.15)", borderRadius: 14, padding: 16, marginBottom: 20 }}>
             {(() => {
-              const data = [0, 400, 900, 1600, 2100, 2800, 3200, 3600, 4000, 4300, 4600, 4800];
+              const data = yearSnaps.map(s => s.netWorth);
               const W = 280, H = 70;
-              const max = Math.max(...data);
-              const pts = data.map((v, i) => `${(i / (data.length - 1)) * W},${H - (v / max) * H}`).join(" ");
+              const min = Math.min(...data), max = Math.max(...data);
+              const pts = data.map((v, i) => `${(i / (data.length - 1)) * W},${H - ((v - min) / (max - min || 1)) * H}`).join(" ");
               return (
                 <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
                   <defs>
@@ -6470,43 +6517,21 @@ function AnnualReview({ goals, profile, checkInLog, streak }) {
               );
             })()}
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-              <span style={{ color: T.textSub, fontSize: 10 }}>Jan {year}</span>
-              <span style={{ color: T.green, fontSize: 11, fontWeight: 700 }}>+${netWorthChange.toLocaleString()}</span>
-              <span style={{ color: T.textSub, fontSize: 10 }}>Dec {year}</span>
+              <span style={{ color: T.textSub, fontSize: 10 }}>{yearSnaps[0].date}</span>
+              <span style={{ color: T.green, fontSize: 11, fontWeight: 700 }}>{netWorthChange >= 0 ? "+" : "-"}${Math.abs(netWorthChange).toLocaleString()}</span>
+              <span style={{ color: T.textSub, fontSize: 10 }}>{yearSnaps[yearSnaps.length - 1].date}</span>
             </div>
           </div>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-            If you keep this pace, your net worth will grow by <strong style={{ color: T.green }}>${(netWorthChange * 1.15).toLocaleString()}</strong> next year.
-          </p>
+          {netWorthChange > 0 && (
+            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+              If you keep this pace, your net worth could grow by roughly <strong style={{ color: T.green }}>${Math.round(netWorthChange * 1.15).toLocaleString()}</strong> next year. This is a simple estimate, not a guarantee.
+            </p>
+          )}
         </div>
-      ),
-    },
-    {
-      id: "community",
-      bg: "linear-gradient(160deg, #141330 0%, #0F0E2A 100%)",
-      accent: T.purple,
-      content: (
+      ) : (
         <div style={{ textAlign: "center", padding: "0 24px" }}>
-          <p style={{ color: T.purple, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 12px" }}>You vs Everyone</p>
-          <div style={{ width: 80, height: 80, borderRadius: "50%", background: GRAD.purple, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "none" }}>
-            <span style={{ color: "#fff", fontSize: 22, fontWeight: 900 }}>18%</span>
-          </div>
-          <p style={{ color: "#fff", fontWeight: 800, fontSize: 22, margin: "0 0 6px" }}>Top 18% of savers</p>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, margin: "0 0 28px" }}>on Freedom Funds in {year}</p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-            {[
-              { label: "Avg user saved",   value: "$4,120",  yours: `$${totalSaved.toLocaleString()}`, better: totalSaved > 4120 },
-              { label: "Avg savings rate", value: "9%",      yours: `${savingsRate}%`,                  better: savingsRate > 9  },
-            ].map(s => (
-              <div key={s.label} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 14 }}>
-                <p style={{ color: T.textSub, fontSize: 10, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.8 }}>{s.label}</p>
-                <p style={{ color: T.textMid, fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>Avg: {s.value}</p>
-                <p style={{ color: s.better ? T.green : T.red, fontSize: 16, fontWeight: 900, margin: 0 }}>You: {s.yours}</p>
-                {s.better && <p style={{ color: T.green, fontSize: 10, margin: "4px 0 0" }}>Above average</p>}
-              </div>
-            ))}
-          </div>
-          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, lineHeight: 1.6, margin: 0 }}>You outperformed 82% of people on this platform. That is not luck. That is discipline.</p>
+          <p style={{ color: T.green, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 12px" }}>Net Worth</p>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.7, margin: 0 }}>Keep tracking your assets and liabilities on the Wealth tab. Once you've checked in there over time, we'll show your real net worth trend here.</p>
         </div>
       ),
     },
@@ -6523,14 +6548,14 @@ function AnnualReview({ goals, profile, checkInLog, streak }) {
             <span style={{ background: GRAD.green, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>real freedom.</span>
           </h2>
           <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, margin: "0 0 28px", lineHeight: 1.7 }}>
-            ${totalSaved.toLocaleString()} saved. {goalsCompleted} goal{goalsCompleted !== 1 ? "s" : ""} completed. {streakBest}-day streak. Net worth up ${netWorthChange.toLocaleString()}. Every one of those was a decision to choose your future over your present comfort.
+            ${totalSaved.toLocaleString()} saved. {goalsCompleted} goal{goalsCompleted !== 1 ? "s" : ""} completed. {streakBest}-day streak.{hasNetWorthHistory ? ` Net worth ${netWorthChange >= 0 ? "up" : "down"} $${Math.abs(netWorthChange).toLocaleString()}.` : ""} Every one of those was a decision to choose your future over your present comfort.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
             {[
               { label: "Saved",     value: `$${totalSaved.toLocaleString()}`,    color: T.green  },
               { label: "Goals done",value: goalsCompleted,                        color: T.purple },
               { label: "Streak",    value: `${streakBest}d`,                      color: T.gold   },
-              { label: "NW growth", value: `+$${netWorthChange.toLocaleString()}`,color: T.teal   },
+              ...(hasNetWorthHistory ? [{ label: "NW change", value: `${netWorthChange >= 0 ? "+" : "-"}$${Math.abs(netWorthChange).toLocaleString()}`, color: T.teal }] : []),
             ].map(s => (
               <div key={s.label} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "12px 8px" }}>
                 <p style={{ color: s.color, fontWeight: 900, fontSize: 18, margin: "0 0 3px" }}>{s.value}</p>
@@ -10927,6 +10952,25 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
   const savedPct = monthlyIncome > 0 ? Math.round((realSaved / monthlyIncome) * 100) : 0;
   const spentPct = monthlyIncome > 0 ? Math.round((realSpent / monthlyIncome) * 100) : 0;
 
+  // Real "next bill due" derived from actual bills, matching BillsTab's own due-day logic
+  const nextBill = (() => {
+    if (!dbBills || dbBills.length === 0) return null;
+    const today = new Date();
+    const currentDay = today.getDate();
+    const daysUntilDue = (dueDay) => {
+      let d = dueDay - currentDay;
+      if (d < 0) d += 28;
+      return d;
+    };
+    return [...dbBills].sort((a, b) => daysUntilDue(a.dueDay) - daysUntilDue(b.dueDay))[0];
+  })();
+  const nextBillDays = nextBill ? (() => {
+    const today = new Date();
+    let d = nextBill.dueDay - today.getDate();
+    if (d < 0) d += 28;
+    return d;
+  })() : null;
+
   const TABS = [
     { id: "home",      icon: "home",       label: "Home"      },
     { id: "goals",     icon: "target",     label: "Goals"     },
@@ -11184,9 +11228,14 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
               <div style={{ width: 30, height: 30, borderRadius: 8, background: `${T.red}18`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 7 }}>
                 <Icon name="calendar" size={15} color={T.red} />
               </div>
-              <p style={{ color: T.text, fontWeight: 800, fontSize: 15, margin: "0 0 2px" }}>$142</p>
-              <p style={{ color: T.textSub, fontSize: 11, margin: 0 }}>Car Insurance in 3d</p>
-              <div style={{ marginTop: 8 }}><ProgressBar pct={78} color={T.red} height={4} /></div>
+              {nextBill ? (
+                <>
+                  <p style={{ color: T.text, fontWeight: 800, fontSize: 15, margin: "0 0 2px" }}>${nextBill.amount.toLocaleString()}</p>
+                  <p style={{ color: T.textSub, fontSize: 11, margin: 0 }}>{nextBill.name} in {nextBillDays}d</p>
+                </>
+              ) : (
+                <p style={{ color: T.textSub, fontSize: 11, margin: 0 }}>No bills added yet</p>
+              )}
             </button>
             <button onClick={() => setTab("health")} style={{ ...S.card, cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <p style={{ color: T.textMid, fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", margin: 0 }}>Savings Rate</p>
@@ -11352,7 +11401,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "referral"  && <div style={{ paddingTop: 16 }}><ReferralSystem profile={profile} /></div>}
       {tab === "networth"  && <div style={{ paddingTop: 16 }}><NetWorthTab goals={goals} profile={profile} initialAssets={dbAssets} initialLiabs={dbLiabs} onPersistAsset={persistAsset} onDeleteAsset={removeAssetDb} onPersistLiab={persistLiab} onDeleteLiab={removeLiabDb} snapshots={dbSnapshots} onSnapshot={persistSnapshot} /></div>}
       {tab === "debt"      && <div style={{ paddingTop: 16 }}><DebtPayoffTab initialDebts={dbDebts} onPersistDebt={persistDebt} onDeleteDebt={removeDebtDb} /></div>}
-      {tab === "health"    && <div style={{ paddingTop: 16 }}><HealthScore goals={goals} profile={profile} /></div>}
+      {tab === "health"    && <div style={{ paddingTop: 16 }}><HealthScore goals={goals} profile={profile} debts={dbDebts} bills={dbBills} checkInLog={checkInLog} /></div>}
       {tab === "whatif"    && <div style={{ paddingTop: 16 }}><WhatIfCalculator goals={goals} profile={profile} /></div>}
       {tab === "learn"     && <div style={{ paddingTop: 16 }}><InvestEducationPath /></div>}
       {tab === "credit"    && <div style={{ paddingTop: 16 }}><CreditScoreTracker /></div>}
@@ -11366,7 +11415,6 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
               <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.5 }}>Deeper views of the same data.</p>
               {[
                 { id: "health",    icon: "shield",   color: T.green,  title: "Financial Health Score", sub: "One score across savings, debt, and habits" },
-                { id: "analytics", icon: "pieChart", color: T.blue,   title: "Spending Stats",         sub: "Charts and category breakdowns" },
                 { id: "review",    icon: "award",    color: T.gold,   title: "Year in Review",         sub: "Your progress across the whole year" },
               ].map((r, i) => (
                 <button key={r.id} onClick={() => setTab(r.id)} style={{ width: "100%", background: "none", border: "none", borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.06)", padding: "12px 2px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", fontFamily: "'Inter',sans-serif" }}>
@@ -11384,7 +11432,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
           </div>
         </div>
       )}
-      {tab === "review"    && <div style={{ paddingTop: 16 }}><AnnualReview goals={goals} profile={profile} checkInLog={checkInLog} streak={streak} /></div>}
+      {tab === "review"    && <div style={{ paddingTop: 16 }}><AnnualReview goals={goals} profile={profile} checkInLog={checkInLog} streak={streak} bills={dbBills} netWorthSnapshots={dbSnapshots} /></div>}
       {tab === "calendar" && <div style={{ paddingTop: 16 }}><FinancialCalendar goals={goals} bills={dbBills} checkInLog={checkInLog} profile={profile} /></div>}
       {tab === "bills" && <div style={{ paddingTop: 16 }}><BillsTab profileSubs={profile?.subscriptionsList || []} initialBills={dbBills} onPersist={persistBill} onDelete={removeBillDb} /></div>}
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab initialHoldings={dbHoldings} onPersistHolding={persistHolding} onDeleteHolding={removeHoldingDb} /></div>}
