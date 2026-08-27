@@ -5178,16 +5178,36 @@ function DebtPayoffTab({ initialDebts = [], onPersistDebt = () => {}, onDeleteDe
     ? [...debts].sort((a, b) => b.rate - a.rate)
     : [...debts].sort((a, b) => a.balance - b.balance);
 
-  const estimatePayoff = (debt) => {
-    let bal = debt.balance;
-    let months = 0;
-    const payment = debt.minPayment + (sorted[0].id === debt.id ? monthlyExtra : 0);
-    while (bal > 0 && months < 600) {
-      bal = bal * (1 + debt.rate / 1200) - payment;
-      months++;
+  // Simulate the full payoff timeline across ALL debts together, exactly how
+  // avalanche/snowball is supposed to work: extra payment goes to the current
+  // target debt, and once a debt is paid off, its minimum payment rolls into
+  // the extra pool for the next debt in line. Each debt's payoff month depends
+  // on the ones before it — they are not independent.
+  const payoffMonths = useMemo(() => {
+    const sim = sorted.map(d => ({ id: d.id, balance: d.balance, rate: d.rate, minPayment: d.minPayment, paidOffMonth: null }));
+    let month = 0;
+    let extraPool = monthlyExtra;
+    while (sim.some(d => d.balance > 0) && month < 600) {
+      month++;
+      sim.forEach(d => {
+        if (d.balance <= 0) return;
+        d.balance = d.balance * (1 + d.rate / 1200) - d.minPayment;
+      });
+      const target = sim.find(d => d.balance > 0);
+      if (target) target.balance -= extraPool;
+      sim.forEach(d => {
+        if (d.balance <= 0 && d.paidOffMonth === null) {
+          d.paidOffMonth = month;
+          extraPool += d.minPayment;
+        }
+      });
     }
-    return months;
-  };
+    const map = {};
+    sim.forEach(d => { map[d.id] = d.paidOffMonth ?? 600; });
+    return map;
+  }, [sorted, monthlyExtra]);
+
+  const estimatePayoff = (debt) => payoffMonths[debt.id] ?? 600;
 
   const totalInterest = debts.reduce((a, d) => {
     let bal = d.balance, interest = 0, months = 0;
