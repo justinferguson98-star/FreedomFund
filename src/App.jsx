@@ -5602,18 +5602,24 @@ const NOTIF_TYPES = {
   tax_reminder:    { icon: "barChart",   color: "#F5A623", label: "Tax Reminder"       },
 };
 
-function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], profile = null) {
+function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], profile = null, settings = null) {
   const today = new Date();
   const currentDay = today.getDate();
   const dayOfWeek = today.getDay();
   const notifications = [];
 
+  // Map each notification's type to the user's settings key so toggling one off
+  // actually stops that notification from being generated, not just cosmetically.
+  const isOn = (key) => !settings || settings[key]?.enabled !== false;
+  const daysFor = (key, fallback) => (settings?.[key]?.days ?? fallback);
+
   // 1. Bill due alerts
+  const billReminderDays = daysFor("bill_due", 3);
   bills.forEach(bill => {
     const daysLeft = bill.dueDay >= currentDay
       ? bill.dueDay - currentDay
       : 28 - currentDay + bill.dueDay;
-    if (!bill.autopay) {
+    if (!bill.autopay && isOn("bill_due")) {
       if (daysLeft === 0) {
         notifications.push({
           id: `bill-today-${bill.id}`, type: "bill_overdue", read: false,
@@ -5621,7 +5627,7 @@ function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], p
           body: `$${bill.amount.toLocaleString()} needs to be paid today. Tap to mark it paid.`,
           time: "Just now", priority: "high", action: "bills",
         });
-      } else if (daysLeft <= 3) {
+      } else if (daysLeft <= billReminderDays) {
         notifications.push({
           id: `bill-soon-${bill.id}`, type: "bill_due", read: false,
           title: `${bill.name} due in ${daysLeft} day${daysLeft > 1 ? "s" : ""}`,
@@ -5643,7 +5649,7 @@ function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], p
   goals.forEach(goal => {
     const pct = Math.round((goal.saved / goal.target) * 100);
     [25, 50, 75, 90, 100].forEach(milestone => {
-      if (pct >= milestone && pct < milestone + 5) {
+      if (pct >= milestone && pct < milestone + 5 && isOn("goal_milestone")) {
         notifications.push({
           id: `goal-${milestone}-${goal.id}`, type: milestone === 100 ? "goal_complete" : "goal_milestone",
           read: milestone < 75, title: milestone === 100
@@ -5659,7 +5665,7 @@ function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], p
   });
 
   // 3. Streak alerts
-  if (streak >= 7 && streak % 7 === 0) {
+  if (streak >= 7 && streak % 7 === 0 && isOn("streak_milestone")) {
     notifications.push({
       id: `streak-${streak}`, type: "streak_milestone", read: false,
       title: `${streak}-day streak — incredible`,
@@ -5667,7 +5673,7 @@ function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], p
       time: "Today", priority: "normal", action: "home",
     });
   }
-  if (checkInLog.length === 0 && dayOfWeek !== 0) {
+  if (checkInLog.length === 0 && dayOfWeek !== 0 && isOn("streak_risk")) {
     notifications.push({
       id: "checkin-reminder-today", type: "checkin_reminder", read: false,
       title: "Have you logged your spending today?",
@@ -5681,7 +5687,7 @@ function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], p
   const recentDiningLogged = checkInLog.filter(e => e.category === "Food" && new Date(e.date) >= today30).reduce((a, e) => a + (parseFloat(e.amount) || 0), 0);
   const monthlyDining = recentDiningLogged > 0 ? Math.round(recentDiningLogged) : Math.round((profile?.diningOut || 0) * 4.33);
   const targetDining = 200;
-  if (monthlyDining > targetDining) {
+  if (monthlyDining > targetDining && isOn("overspend")) {
     notifications.push({
       id: "overspend-dining", type: "overspend", read: true,
       title: "Dining out is running high",
@@ -5691,7 +5697,7 @@ function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], p
   }
 
   // 5. Weekly summary (Sundays) — built from real check-ins and real streak
-  if (dayOfWeek === 0) {
+  if (dayOfWeek === 0 && isOn("weekly_summary")) {
     const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
     const weekSpent = Math.round(checkInLog.filter(e => new Date(e.date) >= weekAgo).reduce((a, e) => a + (parseFloat(e.amount) || 0), 0));
     if (weekSpent > 0 || streak > 0) {
@@ -5707,7 +5713,7 @@ function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], p
   // 6. Payday reminder
   const payDay = profile?.payFreq === "biweekly" ? 15 : 1;
   const daysToPayday = payDay >= currentDay ? payDay - currentDay : 30 - currentDay + payDay;
-  if (daysToPayday === 1) {
+  if (daysToPayday === daysFor("payday", 1) && isOn("payday")) {
     notifications.push({
       id: "payday-reminder", type: "payday", read: false,
       title: "Payday is tomorrow — pay yourself first",
@@ -5717,7 +5723,7 @@ function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], p
   }
 
   // 7. Savings insight — based on real dining spend, only shown when it's actually elevated
-  if (monthlyDining > targetDining) {
+  if (monthlyDining > targetDining && isOn("savings_tip")) {
     const potentialAnnualSavings = Math.round((monthlyDining - targetDining) * 12);
     notifications.push({
       id: "savings-insight-subs", type: "savings_tip", read: true,
@@ -5729,7 +5735,7 @@ function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], p
 
   // 8. Quarterly tax reminder
   const month = today.getMonth();
-  if ([3, 5, 8, 11].includes(month) && currentDay <= 5) {
+  if ([3, 5, 8, 11].includes(month) && currentDay <= 5 && isOn("tax_reminder")) {
     notifications.push({
       id: "tax-quarterly", type: "tax_reminder", read: false,
       title: "Quarterly tax payment due this month",
@@ -5859,9 +5865,9 @@ function NotificationCenter({ notifications, onClose, onRead, onReadAll, onNavig
   );
 }
 
-function NotificationSettings({ onClose }) {
-  const [dnd, setDnd] = useState(true);
-  const [settings, setSettings] = useState({
+function NotificationSettings({ onClose, initialSettings = null, initialDnd = false, onSave = () => {} }) {
+  const [dnd, setDnd] = useState(initialDnd);
+  const [settings, setSettings] = useState(initialSettings || {
     bill_due:         { enabled: true,  days: 3,    label: "Bill due reminders",         desc: "Get reminded before bills are due" },
     goal_milestone:   { enabled: true,  days: null, label: "Goal milestones",             desc: "Celebrate progress at 25%, 50%, 75%, 100%" },
     streak_risk:      { enabled: true,  days: null, label: "Streak protection",           desc: "Alert when you haven't checked in today" },
@@ -5876,6 +5882,7 @@ function NotificationSettings({ onClose }) {
 
   const toggle = (key) => setSettings(s => ({ ...s, [key]: { ...s[key], enabled: !s[key].enabled } }));
   const setDays = (key, val) => setSettings(s => ({ ...s, [key]: { ...s[key], days: val } }));
+  const handleSave = () => { onSave({ settings, dnd }); onClose(); };
 
   const groups = [
     { label: "Bills", keys: ["bill_due"] },
@@ -5948,13 +5955,13 @@ function NotificationSettings({ onClose }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <div>
                   <label style={{ ...S.label, fontSize: 10 }}>From</label>
-                  <select style={{ ...S.input, padding: "8px 10px", fontSize: 13 }}>
+                  <select value={settings._quietFrom || "10:00 PM"} onChange={e => setSettings(s => ({ ...s, _quietFrom: e.target.value }))} style={{ ...S.input, padding: "8px 10px", fontSize: 13 }}>
                     {["9:00 PM","10:00 PM","11:00 PM","12:00 AM"].map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={{ ...S.label, fontSize: 10 }}>Until</label>
-                  <select style={{ ...S.input, padding: "8px 10px", fontSize: 13 }}>
+                  <select value={settings._quietUntil || "7:00 AM"} onChange={e => setSettings(s => ({ ...s, _quietUntil: e.target.value }))} style={{ ...S.input, padding: "8px 10px", fontSize: 13 }}>
                     {["6:00 AM","7:00 AM","8:00 AM","9:00 AM"].map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
@@ -5963,7 +5970,7 @@ function NotificationSettings({ onClose }) {
             </div>
           </div>
 
-          <button onClick={onClose} style={S.primaryBtn()}>Save Settings</button>
+          <button onClick={handleSave} style={S.primaryBtn()}>Save Settings</button>
         </div>
       </div>
     </div>
@@ -10728,6 +10735,7 @@ export default function App() {
   const [dbSnapshots, setDbSnapshots] = useState([]);
   const [dbHoldings, setDbHoldings] = useState([]);
   const [dbInvestEdu, setDbInvestEdu] = useState(null);
+  const [dbNotifSettings, setDbNotifSettings] = useState(null);
   const [restoring, setRestoring] = useState(true);
 
   // Restore previous session on page load (stay signed in)
@@ -10832,6 +10840,10 @@ export default function App() {
       const ieRows = await dbRows("invest_education", uid);
       if (ieRows[0]) setDbInvestEdu({ lessons: ieRows[0].lessons || [], quizzes: ieRows[0].quizzes || [], xp: ieRows[0].xp || 0 });
 
+      // Load notification preferences
+      const nsRows = await dbRows("notification_settings", uid);
+      if (nsRows[0]) setDbNotifSettings({ settings: nsRows[0].settings || null, dnd: nsRows[0].dnd || false });
+
     } catch (err) {
       console.error("Error loading user data:", err);
       setScreen("onboarding");
@@ -10909,6 +10921,13 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
   // ── Persist invest education progress ──────────────────────────────
   const persistInvestEdu = (p) => { if (!authUser) return; dbUpsert("invest_education", { id: authUser.id, user_id: authUser.id, lessons: p.lessons, quizzes: p.quizzes, xp: p.xp }); };
 
+  // ── Persist notification preferences ───────────────────────────────
+  const persistNotifSettings = (p) => {
+    setDbNotifSettings(p);
+    if (!authUser) return;
+    dbUpsert("notification_settings", { id: authUser.id, user_id: authUser.id, settings: p.settings, dnd: p.dnd });
+  };
+
   // ── Persist a daily net worth snapshot (one row per user per day) ─
   const lastSnapshotRef = useRef({ date: null, value: null });
   const persistSnapshot = (netWorth) => {
@@ -10927,14 +10946,14 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
     if (!authUser) return;
     const uid = authUser.id;
     const hdrs = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${sb._token() || SUPABASE_KEY}` };
-    const tables = ["goals", "bills", "assets", "liabilities", "check_ins", "school_progress", "class_members", "goal_transactions", "hustle_entries", "notification_reads", "subscriptions", "bill_payments", "debts", "networth_snapshots", "invest_holdings", "invest_education"];
+    const tables = ["goals", "bills", "assets", "liabilities", "check_ins", "school_progress", "class_members", "goal_transactions", "hustle_entries", "notification_reads", "subscriptions", "bill_payments", "debts", "networth_snapshots", "invest_holdings", "invest_education", "notification_settings"];
     await Promise.all(tables.map(t =>
       fetch(`${SUPABASE_URL}/rest/v1/${t}?user_id=eq.${uid}`, { method: "DELETE", headers: hdrs }).catch(() => {})
     ));
     await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, { method: "DELETE", headers: hdrs }).catch(() => {});
     await sb.signOut();
     setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0);
-    setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setAuthReady(true);
+    setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setAuthReady(true);
   };
 
   const persistSchool = (p) => {
@@ -11013,8 +11032,8 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
 
 
   const allNotifications = useMemo(
-    () => generateNotifications(goals, dbBills, streak, checkInLog, profile),
-    [goals, streak, checkInLog, profile]
+    () => generateNotifications(goals, dbBills, streak, checkInLog, profile, dbNotifSettings?.settings || null),
+    [goals, streak, checkInLog, profile, dbNotifSettings]
   );
   const notifications = allNotifications.map(n => ({ ...n, read: n.read || readNotifs.includes(n.id) }));
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -11548,7 +11567,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab initialHoldings={dbHoldings} onPersistHolding={persistHolding} onDeleteHolding={removeHoldingDb} /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
       {tab === "deals" && <div style={{ paddingTop: 16 }}><DealsTab /></div>}
-      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setAuthReady(true); }} /></div>}
+      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setAuthReady(true); }} /></div>}
 
       {/* Bottom Nav — primary 6 tabs + More */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(8,9,26,0.97)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(123,110,246,0.15)", zIndex: 100, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)" }}>
@@ -11597,7 +11616,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {editGoal && <EditGoalModal goal={editGoal} onClose={() => setEditGoal(null)} onSave={handleGoalSave} onDelete={handleGoalDelete} />}
       {showCheckIn && <DailyCheckIn profile={profile} goals={goals} onClose={() => setShowCheckIn(false)} onLog={async entry => { const newEntry = { ...entry, date: new Date().toISOString().split("T")[0] }; setCheckInLog(p => [...p, newEntry]); setStreak(s => s + 1); await logCheckIn(entry); }} />}
       {showNotifications && <NotificationCenter notifications={notifications} onClose={() => setShowNotifications(false)} onRead={markRead} onReadAll={markAllRead} onNavigate={t => setTab(t)} onOpenSettings={() => { setShowNotifications(false); setShowNotifSettings(true); }} />}
-      {showNotifSettings && <NotificationSettings onClose={() => setShowNotifSettings(false)} />}
+      {showNotifSettings && <NotificationSettings onClose={() => setShowNotifSettings(false)} initialSettings={dbNotifSettings?.settings} initialDnd={dbNotifSettings?.dnd || false} onSave={persistNotifSettings} />}
     </div>
   );
 }
