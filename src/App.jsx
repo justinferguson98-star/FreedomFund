@@ -11220,7 +11220,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
 
           {/* Row 1: Weekly sparkline + Freedom donut */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div style={S.card}>
+            <button onClick={() => setTab("insights")} style={{ ...S.card, cursor: "pointer", textAlign: "left", width: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                 <div>
                   <p style={{ color: T.textMid, fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", margin: 0 }}>Monthly Left Over</p>
@@ -11239,17 +11239,17 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
                 <polyline points="0,30 15,22 30,27 45,14 60,20 75,10 90,17 105,7 120,12" fill="none" stroke={T.orange} strokeWidth="2" strokeLinecap="round" />
                 {[[45,14],[75,10],[105,7]].map(([x,y],i) => <circle key={i} cx={x} cy={y} r={2.5} fill={T.orange} />)}
               </svg>
-            </div>
-            <div style={{ ...S.card, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            </button>
+            <button onClick={() => setTab("goals")} style={{ ...S.card, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, width: "100%" }}>
               <p style={{ color: T.textMid, fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", margin: 0 }}>Freedom</p>
               <DonutRing pct={overallPct} color={T.purple} size={72} strokeWidth={8} />
               <p style={{ color: T.textSub, fontSize: 10, margin: 0 }}>goals funded</p>
-            </div>
+            </button>
           </div>
 
           {/* Row 2: Goal analysis donuts + Income gauge */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div style={S.card}>
+            <button onClick={() => setTab("goals")} style={{ ...S.card, cursor: "pointer", textAlign: "left", width: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <p style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: 0 }}>Goals</p>
                 <div style={{ display: "flex", gap: 4 }}>
@@ -11263,8 +11263,8 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
                   { pct: Math.round(((goals[2]?.saved||0)/(goals[2]?.target||1))*100), color: T.teal,   label: (goals[2]?.name||"Goal 3").split(" ")[0] },
                 ].map(r => <DonutRing key={r.label} pct={r.pct} color={r.color} size={44} strokeWidth={5} label={r.label} />)}
               </div>
-            </div>
-            <div style={S.card}>
+            </button>
+            <button onClick={() => setTab("insights")} style={{ ...S.card, cursor: "pointer", textAlign: "left", width: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <p style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: 0 }}>Budget</p>
                 <span style={{ background: T.accent, color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 99, fontFamily: "'Inter',sans-serif" }}>Live</span>
@@ -11274,7 +11274,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
                 <SliderBar pct={Math.min(100, savedPct)} color={T.orange} label="Saved" value={`${savedPct}%`} />
                 <SliderBar pct={Math.min(100, spentPct)} color={T.purple} label="Spent" value={`${spentPct}%`} />
               </div>
-            </div>
+            </button>
           </div>
 
           {/* Row 3: Multi-line trend chart full width */}
