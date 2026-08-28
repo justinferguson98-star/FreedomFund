@@ -3736,6 +3736,27 @@ function FinancialReportView({ profile, goals = [], assets = [], liabilities = [
   );
 }
 
+// ── CSV export utility — real data-out, no server round trip needed ────────
+function downloadCSV(filename, headers, rows) {
+  const escapeCell = (val) => {
+    const str = String(val ?? "");
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+  const csvContent = [headers, ...rows].map(row => row.map(escapeCell).join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = null, onSaveProfile = () => {}, onDeleteAccount = null, checkInLog = [], streak = 0, joinDate = null, assets = [], liabilities = [], debts = [], envelopes = [] }) {
   const [showReport, setShowReport] = useState(false);
   const [legal, setLegal] = useState(null);
@@ -3815,6 +3836,24 @@ function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = nu
       </button>
 
       {showReport && <FinancialReportView profile={profile} goals={goals} assets={assets} liabilities={liabilities} debts={debts} envelopes={envelopes} userName={userName} onClose={() => setShowReport(false)} />}
+
+      <div style={S.card}>
+        <SectionLabel>Export Your Data</SectionLabel>
+        <p style={{ color: T.textSub, fontSize: 12, margin: "-6px 0 12px", lineHeight: 1.5 }}>Your data belongs to you. Download it as CSV anytime — open it in Excel, Google Sheets, or anywhere else.</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {[
+            { label: "Daily check-ins", disabled: checkInLog.length === 0, onClick: () => downloadCSV("freedom-funds-checkins.csv", ["Date", "Category", "Amount", "Note"], checkInLog.map(e => [e.date, e.category, e.amount, e.note || ""])) },
+            { label: "Goals", disabled: goals.length === 0, onClick: () => downloadCSV("freedom-funds-goals.csv", ["Name", "Purpose", "Saved", "Target", "Percent Complete", "Private/Public"], goals.map(g => [g.name, g.purpose || "", g.saved, g.target, `${Math.round((g.saved / g.target) * 100)}%`, g.isPublic ? "Public" : "Private"])) },
+            { label: "Debts", disabled: debts.length === 0, onClick: () => downloadCSV("freedom-funds-debts.csv", ["Name", "Balance", "Interest Rate", "Min Payment"], debts.map(d => [d.name, d.balance, `${d.rate}%`, d.minPayment])) },
+            { label: "Budget envelopes", disabled: envelopes.length === 0, onClick: () => downloadCSV("freedom-funds-budget.csv", ["Category", "Monthly Amount"], envelopes.map(e => [e.category, e.amount])) },
+          ].map(exp => (
+            <button key={exp.label} onClick={exp.onClick} disabled={exp.disabled} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "11px 14px", cursor: exp.disabled ? "default" : "pointer", opacity: exp.disabled ? 0.4 : 1, fontFamily: "'Inter',sans-serif" }}>
+              <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{exp.label}</span>
+              <span style={{ color: T.accent, fontSize: 11, fontWeight: 700 }}>{exp.disabled ? "No data yet" : "Download CSV"}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div style={{ background: `linear-gradient(135deg, ${T.accentLo}, ${T.card})`, border: `1px solid ${T.accent}25`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
         <div style={{ width: 60, height: 60, borderRadius: "50%", background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700, color: "#fff", border: `2px solid ${T.accent}50` }}>{initials}</div>
@@ -9041,6 +9080,154 @@ function TaxEstimator({ profile, hustles = [] }) {
 // ── Emergency Fund Calculator ─────────────────────────────────────────────────
 // ── Mortgage Affordability + Amortization Calculator ────────────────────────
 // ── Retirement & FIRE Calculator ─────────────────────────────────────────────
+// ── Life Insurance Needs Calculator (DIME method) ────────────────────────────
+function LifeInsuranceCalculator({ profile, goals = [], debts = [], assets = [] }) {
+  const mo = profile?.monthlyIncome || 0;
+  const annualIncome = mo * 12;
+  const realDebtTotal = debts.reduce((a, d) => a + (Number(d.balance) || 0), 0);
+  const numKids = parseInt(profile?.numKids) || 0;
+  const totalSaved = goals.reduce((a, g) => a + g.saved, 0);
+  const totalAssetsVal = assets.reduce((a, x) => a + (Number(x.amount) || 0), 0) + totalSaved;
+
+  const [otherDebt, setOtherDebt] = useState(String(Math.round(realDebtTotal)));
+  const [mortgageBalance, setMortgageBalance] = useState(profile?.housingType === "own" ? String(Math.round((profile?.housingCost || 0) * 12 * 15)) : "0");
+  const [incomeReplaceYears, setIncomeReplaceYears] = useState(String(numKids > 0 ? 15 : 5));
+  const [numChildren, setNumChildren] = useState(String(numKids));
+  const [educationPerChild, setEducationPerChild] = useState("100000");
+  const [existingCoverage, setExistingCoverage] = useState("0");
+  const [existingSavings, setExistingSavings] = useState(String(Math.round(totalAssetsVal)));
+  const [showBreakdown, setShowBreakdown] = useState(true);
+
+  const debt = parseFloat(otherDebt) || 0;
+  const mortgage = parseFloat(mortgageBalance) || 0;
+  const years = parseFloat(incomeReplaceYears) || 0;
+  const kids = parseInt(numChildren) || 0;
+  const eduCost = parseFloat(educationPerChild) || 0;
+  const existing = (parseFloat(existingCoverage) || 0) + (parseFloat(existingSavings) || 0);
+
+  const dime = {
+    D: Math.round(debt),
+    I: Math.round(annualIncome * years),
+    M: Math.round(mortgage),
+    E: Math.round(kids * eduCost),
+  };
+  const grossNeed = dime.D + dime.I + dime.M + dime.E;
+  const netNeed = Math.max(0, grossNeed - existing);
+
+  return (
+    <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)" }}>
+        <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Life Insurance Needs</p>
+        <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 16px", lineHeight: 1.5 }}>How much coverage your family would actually need — using the DIME method.</p>
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "16px" }}>
+          <p style={{ color: T.accent, fontWeight: 900, fontSize: 30, margin: 0, letterSpacing: -1 }}>${netNeed.toLocaleString()}</p>
+          <p style={{ color: T.textSub, fontSize: 11, margin: "4px 0 0" }}>Estimated coverage need</p>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <SectionLabel>Debt (D)</SectionLabel>
+        <label style={S.label}>Other debts to cover ($) — credit cards, loans, etc.</label>
+        <div style={{ position: "relative", marginBottom: 4 }}>
+          <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+          <input value={otherDebt} onChange={e => setOtherDebt(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+        </div>
+        {realDebtTotal > 0 && <p style={{ color: T.textSub, fontSize: 11, margin: 0 }}>Pre-filled from your tracked debts</p>}
+      </div>
+
+      <div style={S.card}>
+        <SectionLabel>Income Replacement (I)</SectionLabel>
+        <label style={S.label}>Years of income to replace</label>
+        <input value={incomeReplaceYears} onChange={e => setIncomeReplaceYears(e.target.value)} type="number" style={{ ...S.input, marginBottom: 6 }} />
+        <p style={{ color: T.textSub, fontSize: 11, margin: 0 }}>At ${annualIncome.toLocaleString()}/yr income, that's ${dime.I.toLocaleString()}. A common rule is until the youngest child is grown, or 5-10 years if no dependents.</p>
+      </div>
+
+      <div style={S.card}>
+        <SectionLabel>Mortgage (M)</SectionLabel>
+        <label style={S.label}>Remaining mortgage balance ($)</label>
+        <div style={{ position: "relative" }}>
+          <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+          <input value={mortgageBalance} onChange={e => setMortgageBalance(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <SectionLabel>Education (E)</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <label style={S.label}>Number of children</label>
+            <input value={numChildren} onChange={e => setNumChildren(e.target.value)} type="number" style={S.input} />
+          </div>
+          <div>
+            <label style={S.label}>Cost per child ($)</label>
+            <input value={educationPerChild} onChange={e => setEducationPerChild(e.target.value)} type="number" style={S.input} />
+          </div>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <SectionLabel>What You Already Have</SectionLabel>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label style={S.label}>Existing life insurance coverage ($)</label>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={existingCoverage} onChange={e => setExistingCoverage(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+            </div>
+          </div>
+          <div>
+            <label style={S.label}>Liquid savings & assets ($)</label>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={existingSavings} onChange={e => setExistingSavings(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+            </div>
+            {totalAssetsVal > 0 && <p style={{ color: T.textSub, fontSize: 11, margin: "5px 0 0" }}>Pre-filled from your real goals + assets</p>}
+          </div>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <button onClick={() => setShowBreakdown(b => !b)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", padding: 0, marginBottom: showBreakdown ? 12 : 0 }}>
+          <SectionLabel>DIME Breakdown</SectionLabel>
+          <Icon name={showBreakdown ? "chevronUp" : "chevronDown"} size={16} color={T.textSub} />
+        </button>
+        {showBreakdown && (
+          <>
+            {[
+              { label: "Debt (D)", value: dime.D },
+              { label: "Income replacement (I)", value: dime.I },
+              { label: "Mortgage (M)", value: dime.M },
+              { label: "Education (E)", value: dime.E },
+            ].map(r => (
+              <div key={r.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <p style={{ color: T.textMid, fontSize: 13, margin: 0 }}>{r.label}</p>
+                <p style={{ color: T.text, fontWeight: 700, fontSize: 13, margin: 0 }}>${r.value.toLocaleString()}</p>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: `1px solid ${T.border}` }}>
+              <p style={{ color: T.textMid, fontSize: 13, margin: 0 }}>Gross need</p>
+              <p style={{ color: T.text, fontWeight: 700, fontSize: 13, margin: 0 }}>${grossNeed.toLocaleString()}</p>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <p style={{ color: T.textMid, fontSize: 13, margin: 0 }}>Less: existing coverage + savings</p>
+              <p style={{ color: T.green, fontWeight: 700, fontSize: 13, margin: 0 }}>-${Math.round(existing).toLocaleString()}</p>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", marginTop: 4, borderTop: `1px solid ${T.border}` }}>
+              <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>Net need</p>
+              <p style={{ color: T.accent, fontWeight: 900, fontSize: 16, margin: 0 }}>${netNeed.toLocaleString()}</p>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div style={{ ...S.card, background: `${T.gold}0a`, border: `1px solid ${T.gold}30` }}>
+        <p style={{ color: T.gold, fontSize: 12, fontWeight: 700, margin: "0 0 4px" }}>Not financial or insurance advice</p>
+        <p style={{ color: T.textMid, fontSize: 12, margin: 0, lineHeight: 1.6 }}>This is a starting estimate using the widely-used DIME method (Debt, Income, Mortgage, Education). A licensed insurance agent or financial advisor can help you find the right policy type and amount for your real situation.</p>
+      </div>
+    </div>
+  );
+}
+
 function RetirementCalculator({ profile, goals = [] }) {
   const retireGoal = goals.find(g => g.name.toLowerCase().includes("retire"));
   const mo = profile?.monthlyIncome || 0;
@@ -12043,6 +12230,7 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
     { id: "emergency", icon: "shield",     label: "Emergency" },
     { id: "mortgage",  icon: "building",   label: "Mortgage"  },
     { id: "retirement",icon: "award",      label: "Retirement"},
+    { id: "insurance", icon: "shield",     label: "Insurance" },
     { id: "joneses",   icon: "users",      label: "Joneses", hidden: true   },
     { id: "referral",  icon: "send",       label: "Referral", hidden: true  },
     { id: "school",    icon: "award",      label: "School"    },
@@ -12467,6 +12655,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "emergency" && <div style={{ paddingTop: 16 }}><EmergencyFundCalc profile={profile} goals={goals} onNavigate={setTab} /></div>}
       {tab === "mortgage" && <div style={{ paddingTop: 16 }}><MortgageCalculator profile={profile} goals={goals} debts={dbDebts} /></div>}
       {tab === "retirement" && <div style={{ paddingTop: 16 }}><RetirementCalculator profile={profile} goals={goals} /></div>}
+      {tab === "insurance" && <div style={{ paddingTop: 16 }}><LifeInsuranceCalculator profile={profile} goals={goals} debts={dbDebts} assets={dbAssets} /></div>}
       {tab === "joneses"   && <div style={{ paddingTop: 16 }}><JonesesComparison profile={profile} goals={goals} debts={dbDebts} netWorth={dbAssets.reduce((a, x) => a + (Number(x.amount) || 0), 0) + goals.reduce((a, g) => a + g.saved, 0) - dbLiabs.reduce((a, x) => a + (Number(x.amount) || 0), 0)} /></div>}
       {tab === "referral"  && <div style={{ paddingTop: 16 }}><ReferralSystem profile={profile} /></div>}
       {tab === "networth"  && <div style={{ paddingTop: 16 }}><NetWorthTab goals={goals} profile={profile} initialAssets={dbAssets} initialLiabs={dbLiabs} onPersistAsset={persistAsset} onDeleteAsset={removeAssetDb} onPersistLiab={persistLiab} onDeleteLiab={removeLiabDb} snapshots={dbSnapshots} onSnapshot={persistSnapshot} /></div>}
