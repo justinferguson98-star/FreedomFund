@@ -1794,7 +1794,7 @@ function GoalCreationFlow({ onComplete, onCancel }) {
   const [cat, setCat] = useState(null);
   const [form, setForm] = useState({ name: "", purpose: "", target: "", date: "", useLock: false, lockType: "date", cooldown: "24" });
   const [depositAmt, setDepositAmt] = useState("");
-  const [privacy, setPrivacy] = useState({ isPublic: true, showAmount: true, showPercent: true });
+  const [privacy, setPrivacy] = useState({ isPublic: false, showAmount: true, showPercent: true });
   const [homePrice, setHomePrice] = useState("");
   const [downPct, setDownPct] = useState(20);
   const [retireAnnualSpend, setRetireAnnualSpend] = useState("");
