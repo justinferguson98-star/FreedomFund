@@ -571,7 +571,7 @@ function AuthScreen({ onAuth }) {
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
-const Icon = ({ name, size = 18, color = "currentColor", strokeWidth = 1.6 }) => {
+const Icon = ({ name, size = 18, color = "currentColor", strokeWidth = 1.6, style }) => {
   const p = {
     home:        <><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></>,
     target:      <><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21"/><line x1="3" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21" y2="12"/></>,
@@ -613,7 +613,7 @@ const Icon = ({ name, size = 18, color = "currentColor", strokeWidth = 1.6 }) =>
     edit:        <><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
   };
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={style}>
       {p[name] || null}
     </svg>
   );
