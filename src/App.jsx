@@ -8839,6 +8839,260 @@ function TaxEstimator({ profile, hustles = [] }) {
 }
 
 // ── Emergency Fund Calculator ─────────────────────────────────────────────────
+// ── Mortgage Affordability + Amortization Calculator ────────────────────────
+function MortgageCalculator({ profile, goals = [], debts = [] }) {
+  const houseGoal = goals.find(g => g.name.toLowerCase().includes("house") || g.name.toLowerCase().includes("down payment"));
+  const [homePrice, setHomePrice] = useState(String(houseGoal?.target || 350000));
+  const [downPayment, setDownPayment] = useState(String(houseGoal?.saved || Math.round((houseGoal?.target || 350000) * 0.2)));
+  const [rate, setRate] = useState("6.8");
+  const [term, setTerm] = useState(30);
+  const [propertyTaxRate, setPropertyTaxRate] = useState("1.1");
+  const [insuranceMonthly, setInsuranceMonthly] = useState("120");
+  const [hoaMonthly, setHoaMonthly] = useState("0");
+  const [extraMonthly, setExtraMonthly] = useState("0");
+  const [tab, setTabInner] = useState("afford"); // afford | schedule
+
+  const price = parseFloat(homePrice) || 0;
+  const down = Math.min(parseFloat(downPayment) || 0, price);
+  const loanAmount = Math.max(0, price - down);
+  const r = (parseFloat(rate) || 0) / 100 / 12;
+  const n = term * 12;
+  const monthlyPI = r > 0 && loanAmount > 0 ? Math.round(loanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)) : 0;
+  const monthlyTax = Math.round((price * (parseFloat(propertyTaxRate) || 0) / 100) / 12);
+  const monthlyInsurance = parseFloat(insuranceMonthly) || 0;
+  const monthlyHoa = parseFloat(hoaMonthly) || 0;
+  const totalMonthly = monthlyPI + monthlyTax + monthlyInsurance + monthlyHoa;
+
+  // Real affordability check — standard 28/36 rule against actual income and actual existing debts
+  const mo = profile?.monthlyIncome || 0;
+  const existingDebtPayments = debts.reduce((a, d) => a + (Number(d.minPayment) || 0), 0);
+  const frontEndRatio = mo > 0 ? Math.round((totalMonthly / mo) * 100) : 0;
+  const backEndRatio = mo > 0 ? Math.round(((totalMonthly + existingDebtPayments) / mo) * 100) : 0;
+  const maxFrontPayment = mo * 0.28;
+  const maxBackPayment = mo * 0.36 - existingDebtPayments;
+  const maxAffordablePayment = Math.min(maxFrontPayment, maxBackPayment);
+  const isAffordable = mo > 0 && totalMonthly <= maxAffordablePayment;
+  const verdict = mo === 0 ? null : isAffordable ? "comfortable" : frontEndRatio <= 33 && backEndRatio <= 43 ? "stretching" : "risky";
+  const verdictInfo = {
+    comfortable: { label: "Comfortably affordable", color: T.green, note: "This payment fits within standard lending guidelines (28% of income for housing, 36% including all debt)." },
+    stretching:  { label: "A stretch",              color: T.gold,  note: "This is above the standard comfort guideline. It may still be approvable, but leaves less room for other goals." },
+    risky:       { label: "High risk",               color: T.red,   note: "This payment is well above standard guidelines. Consider a lower price, larger down payment, or longer term." },
+  };
+
+  // Real amortization schedule — actual month-by-month simulation, summarized by year
+  const buildSchedule = (principal, monthlyRate, months, extra) => {
+    let balance = principal;
+    const yearly = [];
+    let yearPrincipal = 0, yearInterest = 0;
+    let actualMonths = 0;
+    for (let m = 1; m <= months && balance > 0; m++) {
+      const interestPortion = balance * monthlyRate;
+      let principalPortion = (monthlyPI - interestPortion) + extra;
+      if (principalPortion > balance) principalPortion = balance;
+      balance -= principalPortion;
+      yearPrincipal += principalPortion;
+      yearInterest += interestPortion;
+      actualMonths = m;
+      if (m % 12 === 0 || balance <= 0) {
+        yearly.push({ year: Math.ceil(m / 12), principal: Math.round(yearPrincipal), interest: Math.round(yearInterest), balance: Math.round(Math.max(0, balance)) });
+        yearPrincipal = 0; yearInterest = 0;
+      }
+    }
+    return { yearly, actualMonths, totalInterest: yearly.reduce((a, y) => a + y.interest, 0) };
+  };
+
+  const schedule = buildSchedule(loanAmount, r, n, parseFloat(extraMonthly) || 0);
+  const baseSchedule = buildSchedule(loanAmount, r, n, 0);
+  const monthsSaved = baseSchedule.actualMonths - schedule.actualMonths;
+  const interestSaved = baseSchedule.totalInterest - schedule.totalInterest;
+
+  // Quick 15 vs 30 comparison at the same rate input (illustrative — real 15yr rates are often lower)
+  const compare = (yrs) => {
+    const nn = yrs * 12;
+    const pi = r > 0 ? Math.round(loanAmount * (r * Math.pow(1 + r, nn)) / (Math.pow(1 + r, nn) - 1)) : 0;
+    const totalPaid = pi * nn;
+    return { pi, totalInterest: Math.round(totalPaid - loanAmount) };
+  };
+  const c15 = compare(15), c30 = compare(30);
+
+  return (
+    <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #0A1A2A 0%, #0F0E2A 100%)" }}>
+        <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Mortgage Calculator</p>
+        <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 16px", lineHeight: 1.5 }}>See what a home really costs — and if it fits your real numbers.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "11px 12px" }}>
+            <p style={{ color: T.accent, fontWeight: 900, fontSize: 20, margin: 0 }}>${totalMonthly.toLocaleString()}</p>
+            <p style={{ color: T.textSub, fontSize: 10, margin: "3px 0 0" }}>Est. monthly payment</p>
+          </div>
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "11px 12px" }}>
+            <p style={{ color: T.purple, fontWeight: 900, fontSize: 20, margin: 0 }}>${loanAmount.toLocaleString()}</p>
+            <p style={{ color: T.textSub, fontSize: 10, margin: "3px 0 0" }}>Loan amount</p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 5, display: "flex", gap: 4 }}>
+        {[{ id: "afford", label: "Affordability" }, { id: "schedule", label: "Amortization" }].map(t => (
+          <button key={t.id} onClick={() => setTabInner(t.id)} style={{ flex: 1, background: tab === t.id ? T.accentLo : "none", border: tab === t.id ? `1px solid ${T.accent}50` : "1px solid transparent", borderRadius: 7, padding: "9px 0", cursor: "pointer", color: tab === t.id ? T.accent : T.textSub, fontFamily: "'Inter',sans-serif", fontWeight: tab === t.id ? 700 : 500, fontSize: 13 }}>{t.label}</button>
+        ))}
+      </div>
+
+      <div style={S.card}>
+        <SectionLabel>Loan Details</SectionLabel>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label style={S.label}>Home price ($)</label>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={homePrice} onChange={e => setHomePrice(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+            </div>
+          </div>
+          <div>
+            <label style={S.label}>Down payment ($)</label>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={downPayment} onChange={e => setDownPayment(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+            </div>
+            <p style={{ color: T.textSub, fontSize: 11, margin: "5px 0 0" }}>{price > 0 ? Math.round((down / price) * 100) : 0}% down{houseGoal ? ` — from your "${houseGoal.name}" goal` : ""}</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div>
+              <label style={S.label}>Interest rate (%)</label>
+              <input value={rate} onChange={e => setRate(e.target.value)} type="number" step="0.1" style={S.input} />
+            </div>
+            <div>
+              <label style={S.label}>Term</label>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[15, 30].map(t => (
+                  <button key={t} onClick={() => setTerm(t)} style={{ flex: 1, background: term === t ? T.accentLo : "rgba(255,255,255,0.04)", border: term === t ? `1px solid ${T.accent}50` : `1px solid ${T.border}`, borderRadius: 8, padding: "12px 0", cursor: "pointer", color: term === t ? T.accent : T.textSub, fontWeight: 700, fontSize: 13, fontFamily: "'Inter',sans-serif" }}>{t}yr</button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div>
+              <label style={S.label}>Prop. tax (%/yr)</label>
+              <input value={propertyTaxRate} onChange={e => setPropertyTaxRate(e.target.value)} type="number" step="0.1" style={S.input} />
+            </div>
+            <div>
+              <label style={S.label}>Insurance ($/mo)</label>
+              <input value={insuranceMonthly} onChange={e => setInsuranceMonthly(e.target.value)} type="number" style={S.input} />
+            </div>
+            <div>
+              <label style={S.label}>HOA ($/mo)</label>
+              <input value={hoaMonthly} onChange={e => setHoaMonthly(e.target.value)} type="number" style={S.input} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {tab === "afford" ? (
+        <>
+          <div style={S.card}>
+            <SectionLabel>Monthly Payment Breakdown</SectionLabel>
+            {[
+              { label: "Principal & Interest", value: monthlyPI, color: T.accent },
+              { label: "Property Tax", value: monthlyTax, color: T.orange },
+              { label: "Home Insurance", value: monthlyInsurance, color: T.purple },
+              { label: "HOA", value: monthlyHoa, color: T.textSub },
+            ].filter(r => r.value > 0).map(r => (
+              <div key={r.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <p style={{ color: T.textMid, fontSize: 13, margin: 0 }}>{r.label}</p>
+                <p style={{ color: r.color, fontWeight: 700, fontSize: 13, margin: 0 }}>${r.value.toLocaleString()}/mo</p>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", marginTop: 4, borderTop: `1px solid ${T.border}` }}>
+              <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>Total (PITI)</p>
+              <p style={{ color: T.text, fontWeight: 900, fontSize: 16, margin: 0 }}>${totalMonthly.toLocaleString()}/mo</p>
+            </div>
+          </div>
+
+          {mo > 0 ? (
+            <div style={{ ...S.card, background: `${verdictInfo[verdict].color}0a`, border: `1px solid ${verdictInfo[verdict].color}30` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <SectionLabel>Real Affordability Check</SectionLabel>
+                <span style={{ background: `${verdictInfo[verdict].color}18`, color: verdictInfo[verdict].color, border: `1px solid ${verdictInfo[verdict].color}40`, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, fontFamily: "'Inter',sans-serif" }}>{verdictInfo[verdict].label}</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                <div>
+                  <p style={{ color: T.textSub, fontSize: 10, margin: "0 0 3px" }}>Housing / income</p>
+                  <p style={{ color: frontEndRatio <= 28 ? T.green : T.red, fontWeight: 800, fontSize: 16, margin: 0 }}>{frontEndRatio}% <span style={{ color: T.textSub, fontSize: 11, fontWeight: 500 }}>(target ≤28%)</span></p>
+                </div>
+                <div>
+                  <p style={{ color: T.textSub, fontSize: 10, margin: "0 0 3px" }}>All debt / income</p>
+                  <p style={{ color: backEndRatio <= 36 ? T.green : T.red, fontWeight: 800, fontSize: 16, margin: 0 }}>{backEndRatio}% <span style={{ color: T.textSub, fontSize: 11, fontWeight: 500 }}>(target ≤36%)</span></p>
+                </div>
+              </div>
+              <p style={{ color: T.textMid, fontSize: 12, margin: 0, lineHeight: 1.6 }}>{verdictInfo[verdict].note}</p>
+              {existingDebtPayments > 0 && <p style={{ color: T.textSub, fontSize: 11, margin: "8px 0 0" }}>Includes ${existingDebtPayments.toLocaleString()}/mo in your existing tracked debt payments.</p>}
+            </div>
+          ) : (
+            <div style={{ ...S.card, background: `${T.gold}0a`, border: `1px solid ${T.gold}30` }}>
+              <p style={{ color: T.gold, fontSize: 12, margin: 0, lineHeight: 1.6 }}>Add your monthly income in Profile to see a real affordability check against your actual numbers.</p>
+            </div>
+          )}
+
+          <div style={S.card}>
+            <SectionLabel>15-Year vs 30-Year</SectionLabel>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {[{ label: "15-Year", d: c15 }, { label: "30-Year", d: c30 }].map(o => (
+                <div key={o.label} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
+                  <p style={{ color: T.textSub, fontSize: 10, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.5 }}>{o.label}</p>
+                  <p style={{ color: T.text, fontWeight: 800, fontSize: 17, margin: "0 0 4px" }}>${o.d.pi.toLocaleString()}/mo</p>
+                  <p style={{ color: T.red, fontSize: 11, margin: 0 }}>${o.d.totalInterest.toLocaleString()} total interest</p>
+                </div>
+              ))}
+            </div>
+            <p style={{ color: T.textSub, fontSize: 11, margin: "10px 0 0", lineHeight: 1.6 }}>A 15-year loan has a higher payment but saves ${Math.max(0, c30.totalInterest - c15.totalInterest).toLocaleString()} in interest at the same rate. Real 15-year rates are often lower still.</p>
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={S.card}>
+            <SectionLabel>Extra Monthly Payment</SectionLabel>
+            <div style={{ position: "relative", marginBottom: 10 }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={extraMonthly} onChange={e => setExtraMonthly(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[0, 100, 200, 500].map(v => (
+                <button key={v} onClick={() => setExtraMonthly(String(v))} style={{ flex: 1, background: extraMonthly === String(v) ? T.accentLo : "rgba(255,255,255,0.04)", border: extraMonthly === String(v) ? `1px solid ${T.accent}50` : `1px solid ${T.border}`, borderRadius: 8, padding: "8px 0", cursor: "pointer", color: extraMonthly === String(v) ? T.accent : T.textSub, fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 12 }}>${v}</button>
+              ))}
+            </div>
+            {parseFloat(extraMonthly) > 0 && (
+              <div style={{ background: T.accentLo, border: `1px solid ${T.accent}30`, borderRadius: 10, padding: 12, marginTop: 12 }}>
+                <p style={{ color: T.accent, fontSize: 13, fontWeight: 700, margin: "0 0 4px" }}>Pays off {Math.floor(monthsSaved / 12)}y {monthsSaved % 12}mo early</p>
+                <p style={{ color: T.textMid, fontSize: 12, margin: 0 }}>Saves ${interestSaved.toLocaleString()} in interest over the life of the loan.</p>
+              </div>
+            )}
+          </div>
+
+          <div style={S.card}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <SectionLabel>Yearly Amortization</SectionLabel>
+              <p style={{ color: T.red, fontSize: 11, fontWeight: 700, margin: 0 }}>${schedule.totalInterest.toLocaleString()} total interest</p>
+            </div>
+            <div style={{ maxHeight: 320, overflowY: "auto" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "0.6fr 1fr 1fr 1fr", gap: 6, padding: "0 0 8px", borderBottom: `1px solid ${T.border}` }}>
+                {["Year", "Principal", "Interest", "Balance"].map(h => <p key={h} style={{ color: T.textSub, fontSize: 10, fontWeight: 700, margin: 0, textTransform: "uppercase" }}>{h}</p>)}
+              </div>
+              {schedule.yearly.map(y => (
+                <div key={y.year} style={{ display: "grid", gridTemplateColumns: "0.6fr 1fr 1fr 1fr", gap: 6, padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                  <p style={{ color: T.text, fontSize: 12, fontWeight: 600, margin: 0 }}>{y.year}</p>
+                  <p style={{ color: T.green, fontSize: 12, margin: 0 }}>${y.principal.toLocaleString()}</p>
+                  <p style={{ color: T.red, fontSize: 12, margin: 0 }}>${y.interest.toLocaleString()}</p>
+                  <p style={{ color: T.textMid, fontSize: 12, margin: 0 }}>${y.balance.toLocaleString()}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function EmergencyFundCalc({ profile, goals, onNavigate }) {
   const [jobStability,   setJobStability]   = useState("moderate");
   const [healthFactor,   setHealthFactor]   = useState("healthy");
@@ -11280,6 +11534,7 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
     { id: "hustle",    icon: "zap",        label: "Hustle"    },
     { id: "tax",       icon: "barChart",   label: "Tax"       },
     { id: "emergency", icon: "shield",     label: "Emergency" },
+    { id: "mortgage",  icon: "building",   label: "Mortgage"  },
     { id: "joneses",   icon: "users",      label: "Joneses", hidden: true   },
     { id: "referral",  icon: "send",       label: "Referral", hidden: true  },
     { id: "school",    icon: "award",      label: "School"    },
@@ -11702,6 +11957,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "hustle"    && <div style={{ paddingTop: 16 }}><SideHustleTab profile={profile} initialHustles={dbHustles} onPersistHustle={persistHustle} onDeleteHustle={removeHustleDb} /></div>}
       {tab === "tax"       && <div style={{ paddingTop: 16 }}><TaxEstimator profile={profile} hustles={dbHustles} /></div>}
       {tab === "emergency" && <div style={{ paddingTop: 16 }}><EmergencyFundCalc profile={profile} goals={goals} onNavigate={setTab} /></div>}
+      {tab === "mortgage" && <div style={{ paddingTop: 16 }}><MortgageCalculator profile={profile} goals={goals} debts={dbDebts} /></div>}
       {tab === "joneses"   && <div style={{ paddingTop: 16 }}><JonesesComparison profile={profile} goals={goals} debts={dbDebts} netWorth={dbAssets.reduce((a, x) => a + (Number(x.amount) || 0), 0) + goals.reduce((a, g) => a + g.saved, 0) - dbLiabs.reduce((a, x) => a + (Number(x.amount) || 0), 0)} /></div>}
       {tab === "referral"  && <div style={{ paddingTop: 16 }}><ReferralSystem profile={profile} /></div>}
       {tab === "networth"  && <div style={{ paddingTop: 16 }}><NetWorthTab goals={goals} profile={profile} initialAssets={dbAssets} initialLiabs={dbLiabs} onPersistAsset={persistAsset} onDeleteAsset={removeAssetDb} onPersistLiab={persistLiab} onDeleteLiab={removeLiabDb} snapshots={dbSnapshots} onSnapshot={persistSnapshot} /></div>}
