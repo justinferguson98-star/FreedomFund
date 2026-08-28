@@ -9874,7 +9874,7 @@ function GlossaryPage({ onClose }) {
   );
 }
 
-function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress = () => {}, studentName = "", userId = null, onNavigate = () => {} }) {
+function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress = () => {}, studentName = "", userId = null, onNavigate = () => {}, checkInLog = [], streak = 0 }) {
   const [completedLessons, setCompletedLessons] = useState(initialProgress?.lessons || []);
   const [completedQuizzes, setCompletedQuizzes]  = useState(initialProgress?.quizzes || []);
   const [activeLesson,     setActiveLesson]       = useState(null);
@@ -9882,14 +9882,6 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
   const [quizSubmitted,    setQuizSubmitted]       = useState(false);
   const [xp,               setXp]                 = useState(initialProgress?.xp || 0);
   const [showCert,         setShowCert]           = useState(null);
-  const [showTeacherView,  setShowTeacherView]    = useState(false);
-  const [myClass,          setMyClass]            = useState(null);
-  const [teacherClass,     setTeacherClass]       = useState(null);
-  const [roster,           setRoster]             = useState([]);
-  const [rosterLoading,    setRosterLoading]      = useState(false);
-  const [joinCode,         setJoinCode]           = useState("");
-  const [newClassName,     setNewClassName]       = useState("");
-  const [classMsg,         setClassMsg]           = useState("");
   const [dailyDone,   setDailyDone]   = useState(initialProgress?.dailyDays || []);
   const [chDone,      setChDone]      = useState(initialProgress?.challenges || []);
   const [showTipBody, setShowTipBody] = useState(false);
@@ -9962,64 +9954,6 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
     saveAll({ challenges: nc, xp: nx });
   };
 
-  const q = async (path) => {
-    try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${sb._token() || SUPABASE_KEY}` } });
-      const d = await r.json();
-      return Array.isArray(d) ? d : [];
-    } catch (e) { return []; }
-  };
-
-  useEffect(() => {
-    if (!userId) return;
-    q(`class_members?user_id=eq.${userId}&limit=1`).then(async mem => {
-      if (mem[0]) {
-        const cls = await q(`classes?id=eq.${mem[0].class_id}&limit=1`);
-        if (cls[0]) setMyClass(cls[0]);
-      }
-    });
-    q(`classes?teacher_id=eq.${userId}&limit=1`).then(cls => { if (cls[0]) setTeacherClass(cls[0]); });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
-
-  const joinClass = async () => {
-    const code = joinCode.trim().toUpperCase();
-    if (!code || !userId) return;
-    setClassMsg("");
-    const cls = await q(`classes?code=eq.${code}&limit=1`);
-    if (!cls[0]) { setClassMsg("No class found with that code. Check with your teacher."); return; }
-    await dbUpsert("class_members", { id: Date.now(), class_id: cls[0].id, user_id: userId });
-    setMyClass(cls[0]);
-    setClassMsg("");
-  };
-
-  const createClass = async () => {
-    if (!newClassName.trim() || !userId) return;
-    const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-    let code = "";
-    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-    const cls = { id: Date.now(), teacher_id: userId, name: newClassName.trim(), code };
-    await dbUpsert("classes", cls);
-    setTeacherClass(cls);
-  };
-
-  const loadRoster = async (cls) => {
-    setRosterLoading(true);
-    const members = await q(`class_members?class_id=eq.${cls.id}`);
-    const ids = members.map(m => m.user_id).filter(Boolean);
-    if (ids.length === 0) { setRoster([]); setRosterLoading(false); return; }
-    const inList = `in.(${ids.join(",")})`;
-    const [profs, progs] = await Promise.all([
-      q(`profiles?id=${inList}&select=id,name`),
-      q(`school_progress?user_id=${inList}`),
-    ]);
-    setRoster(ids.map(id => {
-      const p = profs.find(x => x.id === id);
-      const g = progs.find(x => x.user_id === id);
-      return { id, name: p?.name || "Student", lessons: (g?.lessons || []).length, xp: g?.xp || 0 };
-    }).sort((a, b) => b.xp - a.xp));
-    setRosterLoading(false);
-  };
   const [savings,          setSavings]             = useState(47);
   const [savingsGoal,      setSavingsGoal]         = useState(100);
   const [showMissions,     setShowMissions]        = useState(false);
@@ -10046,76 +9980,6 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
 
   if (showGlossary) return <GlossaryPage onClose={() => setShowGlossary(false)} />;
 
-  // Teacher view
-  if (showTeacherView) return (
-    <div style={{ padding: "0 16px 32px" }}>
-      <button onClick={() => setShowTeacherView(false)} style={{ background: "none", border: "none", color: T.textSub, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontFamily: "'Inter',sans-serif", padding: "0 0 14px" }}>
-        <Icon name="chevronLeft" size={16} color={T.textSub} />Back
-      </button>
-
-      {!teacherClass ? (
-        <div style={S.card}>
-          <SectionLabel>Create Your Class</SectionLabel>
-          <p style={{ color: T.textSub, fontSize: 13, margin: "0 0 14px", lineHeight: 1.6 }}>Name your class and we will generate a join code to share with your students.</p>
-          <input value={newClassName} onChange={e => setNewClassName(e.target.value)} placeholder="e.g. Period 3 — Financial Literacy" style={{ ...S.input, marginBottom: 12 }} />
-          <button onClick={createClass} style={{ ...S.primaryBtn(), opacity: newClassName.trim() ? 1 : 0.4 }}>Create Class</button>
-        </div>
-      ) : (
-        <>
-          <div style={{ ...S.card, background: GRAD.purple, textAlign: "center", padding: 22, marginBottom: 12 }}>
-            <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", margin: "0 0 4px" }}>{teacherClass.name}</p>
-            <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, margin: "0 0 10px" }}>Students join with this code:</p>
-            <p style={{ color: "#fff", fontWeight: 900, fontSize: 34, letterSpacing: 8, margin: 0, fontFamily: "monospace" }}>{teacherClass.code}</p>
-          </div>
-
-          <div style={{ ...S.card, marginBottom: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <SectionLabel>Student Roster</SectionLabel>
-              <button onClick={() => loadRoster(teacherClass)} style={{ background: "rgba(124,92,252,0.12)", border: "1px solid rgba(124,92,252,0.3)", borderRadius: 99, padding: "6px 14px", cursor: "pointer", color: T.purple, fontSize: 12, fontWeight: 700, fontFamily: "'Inter',sans-serif" }}>
-                {rosterLoading ? "Loading..." : roster.length ? "Refresh" : "Load Students"}
-              </button>
-            </div>
-            {roster.length === 0 && !rosterLoading && (
-              <p style={{ color: T.textSub, fontSize: 13, margin: 0, lineHeight: 1.6 }}>No students loaded yet. Share the class code, then tap Load Students.</p>
-            )}
-            {roster.map((s, i) => (
-              <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 0", borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.06)" }}>
-                <div style={{ width: 32, height: 32, borderRadius: 99, background: "rgba(124,92,252,0.14)", border: "1px solid rgba(124,92,252,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ color: T.purple, fontWeight: 800, fontSize: 13 }}>{(s.name || "S")[0].toUpperCase()}</span>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>{s.name}</p>
-                  <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>{s.lessons}/48 lessons &middot; {s.xp} XP</p>
-                </div>
-                <div style={{ width: 74 }}>
-                  <ProgressBar pct={Math.round((s.lessons / 48) * 100)} color={T.purple} height={5} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={S.card}>
-            <SectionLabel>Standards Alignment</SectionLabel>
-            <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.6 }}>Each unit is aligned to national financial-literacy standard categories (Jump$tart framework).</p>
-            {SCHOOL_UNITS.map(u => {
-              const std = SCHOOL_STANDARDS.find(s => s.unit === u.id);
-              return (
-                <div key={u.id} style={{ padding: "9px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                  <p style={{ color: T.text, fontWeight: 700, fontSize: 13, margin: "0 0 4px" }}>Unit {u.id}: {u.name}</p>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {std.cats.map(c => (
-                      <span key={c} style={{ background: `${u.color}14`, color: u.color, border: `1px solid ${u.color}35`, fontSize: 10, fontWeight: 700, padding: "2px 9px", borderRadius: 99 }}>{c}</span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
-
   // Parent view
   if (showParentView) return (
     <div style={{ padding: "0 16px 32px" }}>
@@ -10129,7 +9993,7 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
           {[
             { label: "Lessons done", value: doneCount     },
             { label: "XP earned",    value: xp            },
-            { label: "$ saved",      value: `$${savings}` },
+            { label: "Check-in streak", value: `${streak}d` },
           ].map(s => (
             <div key={s.label} style={{ background: "rgba(255,255,255,0.15)", borderRadius: 9, padding: "10px 6px", textAlign: "center" }}>
               <p style={{ color: "#fff", fontWeight: 800, fontSize: 18, margin: 0 }}>{s.value}</p>
@@ -10137,6 +10001,36 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
             </div>
           ))}
         </div>
+      </div>
+
+      <div style={S.card}>
+        <SectionLabel>Daily Check-Ins</SectionLabel>
+        <p style={{ color: T.textSub, fontSize: 12, margin: "-6px 0 14px", lineHeight: 1.5 }}>Real spending habits, logged day by day. This is where money habits actually form.</p>
+        {checkInLog.length === 0 ? (
+          <p style={{ color: T.textSub, fontSize: 13, margin: 0, lineHeight: 1.6 }}>No check-ins logged yet. Encourage a daily habit — even 30 seconds a day builds real awareness.</p>
+        ) : (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+              <div>
+                <p style={{ color: T.text, fontWeight: 800, fontSize: 20, margin: 0 }}>{checkInLog.length}</p>
+                <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Total check-ins</p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <p style={{ color: T.gold, fontWeight: 800, fontSize: 20, margin: 0 }}>{streak}</p>
+                <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Day streak</p>
+              </div>
+            </div>
+            {[...checkInLog].slice(-5).reverse().map((e, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.06)" }}>
+                <div>
+                  <p style={{ color: T.text, fontSize: 13, fontWeight: 600, margin: 0 }}>{e.category}</p>
+                  <p style={{ color: T.textSub, fontSize: 11, margin: "1px 0 0" }}>{e.date}</p>
+                </div>
+                <p style={{ color: T.textMid, fontSize: 13, fontWeight: 700, margin: 0 }}>${parseFloat(e.amount || 0).toLocaleString()}</p>
+              </div>
+            ))}
+          </>
+        )}
       </div>
 
       <div style={S.card}>
@@ -10287,7 +10181,6 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
             <p style={{ color: T.textSub, fontSize: 12, margin: "3px 0 0" }}>{xp} XP &middot; {doneCount}/{totalLessons} lessons</p>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => setShowTeacherView(true)} style={{ background: "rgba(124,92,252,0.12)", border: "1px solid rgba(124,92,252,0.3)", borderRadius: 99, padding: "7px 12px", cursor: "pointer", color: T.purple, fontSize: 12, fontWeight: 700, fontFamily: "'Inter',sans-serif" }}>Teacher</button>
           <button onClick={() => setShowParentView(true)} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 99, padding: "7px 12px", cursor: "pointer", color: T.textMid, fontSize: 12, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>Parent View</button>
         </div>
         </div>
@@ -10391,29 +10284,18 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
         </button>
       </div>
 
-      {/* Classroom */}
+      {/* Daily Check-In Progress */}
       <div style={S.card}>
-        <SectionLabel>My Classroom</SectionLabel>
-        {myClass ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, background: "rgba(124,92,252,0.14)", border: "1px solid rgba(124,92,252,0.32)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Icon name="users" size={17} color={T.purple} strokeWidth={1.8} />
-            </div>
-            <div>
-              <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>{myClass.name}</p>
-              <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Your teacher can see your progress and XP.</p>
-            </div>
+        <SectionLabel>Daily Check-In Streak</SectionLabel>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 11, background: streak > 0 ? "rgba(245,166,35,0.14)" : "rgba(255,255,255,0.05)", border: `1px solid ${streak > 0 ? "rgba(245,166,35,0.32)" : "rgba(255,255,255,0.1)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icon name="fire" size={17} color={streak > 0 ? T.gold : T.textSub} strokeWidth={1.8} />
           </div>
-        ) : (
-          <>
-            <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 10px", lineHeight: 1.5 }}>In a class? Enter the code from your teacher.</p>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} placeholder="CLASS CODE" maxLength={6} style={{ ...S.input, flex: 1, textTransform: "uppercase", letterSpacing: 3, fontWeight: 700 }} />
-              <button onClick={joinClass} style={{ background: GRAD.purple, border: "none", borderRadius: 99, padding: "0 20px", cursor: "pointer", color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Inter',sans-serif" }}>Join</button>
-            </div>
-            {classMsg && <p style={{ color: T.red, fontSize: 12, margin: "8px 0 0" }}>{classMsg}</p>}
-          </>
-        )}
+          <div>
+            <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>{streak > 0 ? `${streak}-day streak` : "No streak yet"}</p>
+            <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>{checkInLog.length} check-in{checkInLog.length !== 1 ? "s" : ""} logged total &middot; visible in Parent View</p>
+          </div>
+        </div>
       </div>
 
       {/* Money Mastery Roadmap */}
@@ -11633,7 +11515,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
         </div>
       )}
 
-      {tab === "school"    && <div style={{ paddingTop: 16 }}><SchoolMode onExitSchoolMode={() => setTab("home")} initialProgress={dbSchool} onSaveProgress={persistSchool} studentName={profile?.name || ""} userId={authUser?.id} onNavigate={t => setTab(t)} />
+      {tab === "school"    && <div style={{ paddingTop: 16 }}><SchoolMode onExitSchoolMode={() => setTab("home")} initialProgress={dbSchool} onSaveProgress={persistSchool} studentName={profile?.name || ""} userId={authUser?.id} onNavigate={t => setTab(t)} checkInLog={checkInLog} streak={streak} />
         <div style={{ padding: "0 16px 8px" }}>
           <button onClick={() => setTab("learn")} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 16, padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", fontFamily: "'Inter',sans-serif" }}>
             <div style={{ width: 36, height: 36, borderRadius: 11, background: "rgba(124,92,252,0.14)", border: "1px solid rgba(124,92,252,0.32)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
