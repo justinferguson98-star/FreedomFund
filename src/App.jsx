@@ -6070,15 +6070,56 @@ function ZeroBasedBudget({ profile, checkInLog = [], initialEnvelopes = [], onPe
   const [newColor, setNewColor] = useState(T.purple);
 
   const mo = profile?.monthlyIncome || 0;
-  const now = new Date();
+  const realNow = new Date();
+  const monthKey = (y, m) => `${y}-${String(m + 1).padStart(2, "0")}`;
 
-  // Real spend per category — pulled from actual logged check-ins this month, not a guess
-  const spentByCategory = {};
-  checkInLog.forEach(e => {
-    const d = new Date(e.date);
-    if (isNaN(d) || d.getFullYear() !== now.getFullYear() || d.getMonth() !== now.getMonth()) return;
-    spentByCategory[e.category] = (spentByCategory[e.category] || 0) + (parseFloat(e.amount) || 0);
-  });
+  // Real spend for any given month — pulled from actual logged check-ins, not a guess.
+  // This is what makes real budget history possible with no extra backend work.
+  const spendForMonth = (year, month) => {
+    const byCategory = {};
+    checkInLog.forEach(e => {
+      const d = new Date(e.date);
+      if (isNaN(d) || d.getFullYear() !== year || d.getMonth() !== month) return;
+      byCategory[e.category] = (byCategory[e.category] || 0) + (parseFloat(e.amount) || 0);
+    });
+    return byCategory;
+  };
+
+  // Rollover: unspent money in an envelope carries into next month instead of vanishing —
+  // the single most differentiating feature of real envelope budgeting. Since this is a
+  // client-only app with no server cron, rollover is computed lazily on load: walk forward
+  // month by month from each envelope's last-rolled-over month to the real current month,
+  // banking (or subtracting, if overspent) the difference each time.
+  useEffect(() => {
+    envelopes.forEach(env => {
+      let [ry, rm] = (env.lastRolloverMonth || monthKey(realNow.getFullYear(), realNow.getMonth())).split("-").map(Number);
+      rm -= 1; // back to 0-indexed month
+      let balance = env.rolloverBalance || 0;
+      let changed = false;
+      while (ry < realNow.getFullYear() || (ry === realNow.getFullYear() && rm < realNow.getMonth())) {
+        const spentThatMonth = spendForMonth(ry, rm)[env.category] || 0;
+        balance += env.amount - spentThatMonth;
+        rm += 1;
+        if (rm > 11) { rm = 0; ry += 1; }
+        changed = true;
+      }
+      if (changed) {
+        const updated = { ...env, rolloverBalance: balance, lastRolloverMonth: monthKey(realNow.getFullYear(), realNow.getMonth()) };
+        setEnvelopes(p => p.map(e => e.id === env.id ? updated : e));
+        onPersistEnvelope(updated);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [viewMonth, setViewMonth] = useState(realNow.getMonth());
+  const [viewYear, setViewYear] = useState(realNow.getFullYear());
+  const isCurrentMonth = viewMonth === realNow.getMonth() && viewYear === realNow.getFullYear();
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString([], { month: "long", year: "numeric" });
+  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); };
+  const nextMonthNav = () => { if (isCurrentMonth) return; if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m => m + 1); };
+
+  const spentByCategory = spendForMonth(viewYear, viewMonth);
 
   const totalAssigned = envelopes.reduce((a, e) => a + e.amount, 0);
   const unassigned = mo - totalAssigned;
@@ -6089,7 +6130,7 @@ function ZeroBasedBudget({ profile, checkInLog = [], initialEnvelopes = [], onPe
 
   const addEnvelope = () => {
     if (!newCat.trim() || !newAmt) return;
-    const env = { id: Date.now(), category: newCat.trim(), amount: parseFloat(newAmt) || 0, color: newColor, icon: iconFor(newCat.trim()) };
+    const env = { id: Date.now(), category: newCat.trim(), amount: parseFloat(newAmt) || 0, color: newColor, icon: iconFor(newCat.trim()), rolloverBalance: 0, lastRolloverMonth: monthKey(realNow.getFullYear(), realNow.getMonth()) };
     setEnvelopes(p => [...p, env]);
     onPersistEnvelope(env);
     setNewCat(""); setNewAmt(""); setShowAdd(false);
@@ -6139,6 +6180,16 @@ function ZeroBasedBudget({ profile, checkInLog = [], initialEnvelopes = [], onPe
         )}
       </div>
 
+      <div style={{ ...S.card, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <button onClick={prevMonth} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, width: 30, height: 30, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon name="chevronLeft" size={15} color={T.textMid} />
+        </button>
+        <p style={{ color: T.text, fontWeight: 700, fontSize: 14, margin: 0 }}>{monthLabel}{isCurrentMonth && <span style={{ color: T.accent }}> (current)</span>}</p>
+        <button onClick={nextMonthNav} disabled={isCurrentMonth} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, width: 30, height: 30, cursor: isCurrentMonth ? "default" : "pointer", opacity: isCurrentMonth ? 0.3 : 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon name="chevronLeft" size={15} color={T.textMid} style={{ transform: "rotate(180deg)" }} />
+        </button>
+      </div>
+
       <div style={S.card}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <SectionLabel>Your Envelopes</SectionLabel>
@@ -6151,9 +6202,13 @@ function ZeroBasedBudget({ profile, checkInLog = [], initialEnvelopes = [], onPe
         )}
         {envelopes.map(env => {
           const spent = spentByCategory[env.category] || 0;
-          const remaining = env.amount - spent;
-          const pct = env.amount > 0 ? Math.min(100, Math.round((spent / env.amount) * 100)) : 0;
+          // Rollover only applies to the current month's "available" figure — past months
+          // are shown as a plain historical record of what was budgeted vs. actually spent.
+          const available = isCurrentMonth ? env.amount + (env.rolloverBalance || 0) : env.amount;
+          const remaining = available - spent;
+          const pct = available > 0 ? Math.min(100, Math.round((spent / available) * 100)) : 0;
           const isOver = remaining < 0;
+          const hasRollover = isCurrentMonth && Math.abs(env.rolloverBalance || 0) >= 1;
           return (
             <div key={env.id} style={{ padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -6163,7 +6218,7 @@ function ZeroBasedBudget({ profile, checkInLog = [], initialEnvelopes = [], onPe
                   </div>
                   <div>
                     <p style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: 0 }}>{env.category}</p>
-                    <p style={{ color: T.textSub, fontSize: 11, margin: "1px 0 0" }}>${spent.toLocaleString()} of ${env.amount.toLocaleString()} spent</p>
+                    <p style={{ color: T.textSub, fontSize: 11, margin: "1px 0 0" }}>${spent.toLocaleString()} of ${available.toLocaleString()} spent{hasRollover ? ` (${env.rolloverBalance > 0 ? "+" : ""}$${Math.round(env.rolloverBalance).toLocaleString()} rolled over)` : ""}</p>
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -6172,12 +6227,14 @@ function ZeroBasedBudget({ profile, checkInLog = [], initialEnvelopes = [], onPe
                 </div>
               </div>
               <ProgressBar pct={pct} color={isOver ? T.red : env.color} height={6} />
+              {isCurrentMonth && (
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 <button onClick={() => { setEditEnv(env); setNewAmt(String(env.amount)); }} style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "6px 0", cursor: "pointer", color: T.textMid, fontSize: 11, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>Edit Amount</button>
                 <button onClick={() => removeEnvelope(env.id)} style={{ background: "rgba(255,90,110,0.08)", border: "1px solid rgba(255,90,110,0.2)", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: T.red, fontSize: 11, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>
                   <Icon name="x" size={12} color={T.red} />
                 </button>
               </div>
+              )}
             </div>
           );
         })}
@@ -11275,7 +11332,7 @@ export default function App() {
 
       // Load zero-based budget envelopes
       const envRows = await dbRows("budget_envelopes", uid);
-      if (Array.isArray(envRows)) setDbEnvelopes(envRows.map(r => ({ id: r.id, category: r.category, amount: Number(r.amount), color: r.color, icon: r.icon || "wallet" })));
+      if (Array.isArray(envRows)) setDbEnvelopes(envRows.map(r => ({ id: r.id, category: r.category, amount: Number(r.amount), color: r.color, icon: r.icon || "wallet", rolloverBalance: Number(r.rollover_balance) || 0, lastRolloverMonth: r.last_rollover_month || null })));
 
     } catch (err) {
       console.error("Error loading user data:", err);
@@ -11372,7 +11429,7 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
   // ── Persist zero-based budget envelopes ────────────────────────────
   const persistEnvelope = (env) => {
     if (!authUser) return;
-    dbUpsert("budget_envelopes", { id: env.id, user_id: authUser.id, category: env.category, amount: env.amount, color: env.color, icon: env.icon });
+    dbUpsert("budget_envelopes", { id: env.id, user_id: authUser.id, category: env.category, amount: env.amount, color: env.color, icon: env.icon, rollover_balance: env.rolloverBalance || 0, last_rollover_month: env.lastRolloverMonth || null });
   };
   const removeEnvelopeDb = (id) => { if (authUser) dbDelete("budget_envelopes", id, authUser.id); };
 
