@@ -4424,7 +4424,7 @@ const LEGAL_TEXT = {
       { h: "What this app is not", p: "We are not a bank, a broker, a tax preparer, or a registered investment advisor. Nothing in this app is financial, tax, or legal advice. Calculators and projections are estimates based on the numbers you enter, and real results will differ." },
       { h: "Your decisions are yours", p: "You are responsible for your own financial choices. For decisions with real consequences, please consult a licensed professional who can review your full situation." },
       { h: "Your account", p: "Keep your password private. You are responsible for activity under your account. Do not share an account with anyone else." },
-      { h: "Acceptable use", p: "Do not attempt to access other users data, disrupt the service, or use the app for anything unlawful. Teachers may remove students from a class at any time." },
+      { h: "Acceptable use", p: "Do not attempt to access other users' data, disrupt the service, or use the app for anything unlawful." },
       { h: "Availability", p: "The service is provided as is. We may update, pause, or change features. We do our best to protect your data but cannot guarantee uninterrupted service." },
       { h: "Changes", p: "If these terms change materially, we will note it here with a new date. Continuing to use the app means you accept the current terms." },
     ],
@@ -5546,15 +5546,19 @@ function HealthScore({ goals, profile, debts = [], bills = [], checkInLog = [] }
 // ── What-If Calculator ────────────────────────────────────────────────────────
 function WhatIfCalculator({ goals, profile }) {
   const [category, setCategory] = useState("dining");
+  const realDining = Math.round((profile?.diningOut || 0) * 4.33);
+  const realSubs   = Math.round(profile?.subscriptions || 0);
+  const realShopping = Math.round((profile?.clothingMonthly || 0) + (profile?.miscSpend || 0));
+  const realTransport = Math.round(profile?.fuelCost || 0);
   const [savingsPerMonth, setSavingsPerMonth] = useState("200");
   const [targetGoal, setTargetGoal] = useState(goals[0]?.id || null);
 
   const categories = [
-    { id: "dining",        label: "Cut dining out",         icon: "dollarSign", currentSpend: 380  },
-    { id: "subscriptions", label: "Cancel subscriptions",   icon: "repeat",     currentSpend: 130  },
-    { id: "shopping",      label: "Reduce shopping",        icon: "package",    currentSpend: 340  },
+    { id: "dining",        label: "Cut dining out",         icon: "dollarSign", currentSpend: realDining > 0 ? realDining : 380 },
+    { id: "subscriptions", label: "Cancel subscriptions",   icon: "repeat",     currentSpend: realSubs > 0 ? realSubs : 130 },
+    { id: "shopping",      label: "Reduce shopping",        icon: "package",    currentSpend: realShopping > 0 ? realShopping : 340 },
     { id: "coffee",        label: "Skip daily coffee",      icon: "zap",        currentSpend: 120  },
-    { id: "transport",     label: "Cut transport costs",    icon: "send",       currentSpend: 190  },
+    { id: "transport",     label: "Cut transport costs",    icon: "send",       currentSpend: realTransport > 0 ? realTransport : 190 },
     { id: "custom",        label: "Custom amount",          icon: "barChart",   currentSpend: 0    },
   ];
 
@@ -8500,9 +8504,11 @@ function SideHustleTab({ profile, initialHustles = [], onPersistHustle = () => {
 }
 
 // ── Tax Estimator ─────────────────────────────────────────────────────────────
-function TaxEstimator({ profile }) {
+function TaxEstimator({ profile, hustles = [] }) {
   const [filingStatus, setFilingStatus]   = useState("single");
-  const [sideIncome,   setSideIncome]     = useState("1200");
+  const thisYear = new Date().getFullYear();
+  const realAnnualSideIncome = Math.round(hustles.reduce((a, h) => a + h.entries.filter(e => new Date(e.date).getFullYear() === thisYear).reduce((b, e) => b + (parseFloat(e.amount) || 0), 0), 0));
+  const [sideIncome,   setSideIncome]     = useState(String(realAnnualSideIncome > 0 ? realAnnualSideIncome : 1200));
   const [w2Income,     setW2Income]       = useState(String(profile?.income ? profile.income * 12 : 50400));
   const [deductions,   setDeductions]     = useState("standard");
   const [state,        setStateTax]       = useState(profile?.state || "TX");
@@ -8517,7 +8523,7 @@ function TaxEstimator({ profile }) {
     const brackets = status === "married"
       ? [[23200,0.10],[94300,0.12],[201050,0.22],[383900,0.24],[487450,0.32],[731200,0.35],[Infinity,0.37]]
       : [[11600,0.10],[47150,0.12],[100525,0.22],[191950,0.24],[243725,0.32],[609350,0.35],[Infinity,0.37]];
-    const stdDed = status === "married" ? 27700 : 13850;
+    const stdDed = status === "married" ? 29200 : 14600;
     const taxable = Math.max(0, income - (deductions === "standard" ? stdDed : stdDed * 1.4));
     let tax = 0, prev = 0;
     for (const [limit, rate] of brackets) {
@@ -11485,26 +11491,6 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
               ))}
             </div>
           </div>
-          <div style={S.card}>
-            <SectionLabel>Your Analytics</SectionLabel>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-              {[
-                { label: "Your Daily Avg", value: "$28.40", sub: "vs $14.20 community", color: T.green },
-                { label: "Your Monthly", value: "$860", sub: "vs $431 community", color: T.accent },
-                { label: "Streak", value: "7 days", sub: "Personal best: 14", color: T.gold },
-                { label: "Consistency", value: "82%", sub: "Days you saved", color: T.purple },
-              ].map(s => (
-                <div key={s.label} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}`, borderRadius: 9, padding: "11px 12px" }}>
-                  <p style={{ color: T.textSub, fontSize: 10, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</p>
-                  <p style={{ color: s.color, fontWeight: 700, fontSize: 16, margin: "0 0 3px" }}>{s.value}</p>
-                  <p style={{ color: T.textSub, fontSize: 10, margin: 0 }}>{s.sub}</p>
-                </div>
-              ))}
-            </div>
-            <div style={{ background: T.accentLo, border: `1px solid ${T.accent}25`, borderRadius: 8, padding: 11 }}>
-              <p style={{ color: T.accent, fontSize: 12, margin: 0, lineHeight: 1.6 }}>You are saving <strong>2x the community average</strong>. At this rate you will hit your Emergency Fund goal <strong>8 months ahead of schedule.</strong></p>
-            </div>
-          </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <SectionLabel>Live Feed</SectionLabel>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -11531,7 +11517,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
         </div>
       </div>}
       {tab === "hustle"    && <div style={{ paddingTop: 16 }}><SideHustleTab profile={profile} initialHustles={dbHustles} onPersistHustle={persistHustle} onDeleteHustle={removeHustleDb} /></div>}
-      {tab === "tax"       && <div style={{ paddingTop: 16 }}><TaxEstimator profile={profile} /></div>}
+      {tab === "tax"       && <div style={{ paddingTop: 16 }}><TaxEstimator profile={profile} hustles={dbHustles} /></div>}
       {tab === "emergency" && <div style={{ paddingTop: 16 }}><EmergencyFundCalc profile={profile} goals={goals} onNavigate={setTab} /></div>}
       {tab === "joneses"   && <div style={{ paddingTop: 16 }}><JonesesComparison profile={profile} goals={goals} debts={dbDebts} netWorth={dbAssets.reduce((a, x) => a + (Number(x.amount) || 0), 0) + goals.reduce((a, g) => a + g.saved, 0) - dbLiabs.reduce((a, x) => a + (Number(x.amount) || 0), 0)} /></div>}
       {tab === "referral"  && <div style={{ paddingTop: 16 }}><ReferralSystem profile={profile} /></div>}
