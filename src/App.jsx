@@ -6060,6 +6060,168 @@ const CAL_EVENT_TYPES = {
   tax:          { color: "#FF5A6E", icon: "barChart",   label: "Tax Due"         },
 };
 
+// ── Zero-Based Budget (envelope budgeting) ──────────────────────────────────
+function ZeroBasedBudget({ profile, checkInLog = [], initialEnvelopes = [], onPersistEnvelope = () => {}, onDeleteEnvelope = () => {} }) {
+  const [envelopes, setEnvelopes] = useState(initialEnvelopes);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editEnv, setEditEnv] = useState(null);
+  const [newCat, setNewCat] = useState("");
+  const [newAmt, setNewAmt] = useState("");
+  const [newColor, setNewColor] = useState(T.purple);
+
+  const mo = profile?.monthlyIncome || 0;
+  const now = new Date();
+
+  // Real spend per category — pulled from actual logged check-ins this month, not a guess
+  const spentByCategory = {};
+  checkInLog.forEach(e => {
+    const d = new Date(e.date);
+    if (isNaN(d) || d.getFullYear() !== now.getFullYear() || d.getMonth() !== now.getMonth()) return;
+    spentByCategory[e.category] = (spentByCategory[e.category] || 0) + (parseFloat(e.amount) || 0);
+  });
+
+  const totalAssigned = envelopes.reduce((a, e) => a + e.amount, 0);
+  const unassigned = mo - totalAssigned;
+  const isZeroBased = Math.abs(unassigned) < 1;
+
+  const colorOptions = [T.purple, T.accent, T.green, T.orange, T.red, T.gold, T.teal, T.textSub];
+  const iconFor = (cat) => ({ Food: "dollarSign", Transport: "send", Shopping: "package", Entertainment: "zap", Health: "shield", Other: "wallet" }[cat] || "wallet");
+
+  const addEnvelope = () => {
+    if (!newCat.trim() || !newAmt) return;
+    const env = { id: Date.now(), category: newCat.trim(), amount: parseFloat(newAmt) || 0, color: newColor, icon: iconFor(newCat.trim()) };
+    setEnvelopes(p => [...p, env]);
+    onPersistEnvelope(env);
+    setNewCat(""); setNewAmt(""); setShowAdd(false);
+  };
+
+  const saveEdit = () => {
+    if (!editEnv) return;
+    const updated = { ...editEnv, amount: parseFloat(newAmt) || 0 };
+    setEnvelopes(p => p.map(e => e.id === editEnv.id ? updated : e));
+    onPersistEnvelope(updated);
+    setEditEnv(null); setNewAmt("");
+  };
+
+  const removeEnvelope = (id) => {
+    setEnvelopes(p => p.filter(e => e.id !== id));
+    onDeleteEnvelope(id);
+  };
+
+  return (
+    <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
+      <div style={{ ...S.card, background: isZeroBased ? "linear-gradient(135deg, #0A2218 0%, #0F0E2A 100%)" : "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)" }}>
+        <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Zero-Based Budget</p>
+        <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 16px", lineHeight: 1.5 }}>Give every dollar a job before you spend it.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "11px 10px" }}>
+            <p style={{ color: T.green, fontWeight: 900, fontSize: 18, margin: 0 }}>${mo.toLocaleString()}</p>
+            <p style={{ color: T.textSub, fontSize: 10, margin: "3px 0 0" }}>Income</p>
+          </div>
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "11px 10px" }}>
+            <p style={{ color: T.purple, fontWeight: 900, fontSize: 18, margin: 0 }}>${totalAssigned.toLocaleString()}</p>
+            <p style={{ color: T.textSub, fontSize: 10, margin: "3px 0 0" }}>Assigned</p>
+          </div>
+          <div style={{ background: isZeroBased ? "rgba(0,210,160,0.1)" : "rgba(255,90,110,0.1)", border: isZeroBased ? "1px solid rgba(0,210,160,0.25)" : "1px solid rgba(255,90,110,0.25)", borderRadius: 10, padding: "11px 10px" }}>
+            <p style={{ color: isZeroBased ? T.green : T.red, fontWeight: 900, fontSize: 18, margin: 0 }}>{unassigned < 0 ? "-" : ""}${Math.abs(unassigned).toLocaleString()}</p>
+            <p style={{ color: T.textSub, fontSize: 10, margin: "3px 0 0" }}>{unassigned < 0 ? "Over-assigned" : "Unassigned"}</p>
+          </div>
+        </div>
+        {!isZeroBased && mo > 0 && (
+          <p style={{ color: unassigned > 0 ? T.gold : T.red, fontSize: 12, margin: "12px 0 0", lineHeight: 1.6 }}>
+            {unassigned > 0
+              ? `You still have $${unassigned.toLocaleString()} without a job. Give it a category below, or move it to savings.`
+              : `You've assigned $${Math.abs(unassigned).toLocaleString()} more than you actually make. Adjust an envelope below.`}
+          </p>
+        )}
+        {mo === 0 && (
+          <p style={{ color: T.gold, fontSize: 12, margin: "12px 0 0", lineHeight: 1.6 }}>Add your monthly income in Profile to see how much you have to assign.</p>
+        )}
+      </div>
+
+      <div style={S.card}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <SectionLabel>Your Envelopes</SectionLabel>
+          <button onClick={() => setShowAdd(true)} style={{ background: "rgba(123,110,246,0.12)", border: "1px solid rgba(123,110,246,0.3)", borderRadius: 99, padding: "5px 13px", cursor: "pointer", color: T.purple, fontSize: 12, fontWeight: 700, fontFamily: "'Inter',sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
+            <Icon name="plus" size={12} color={T.purple} />Add
+          </button>
+        </div>
+        {envelopes.length === 0 && (
+          <p style={{ color: T.textSub, fontSize: 13, margin: 0, lineHeight: 1.6 }}>No envelopes yet. Add one for each thing you spend money on — Food, Transport, Shopping — and give it a monthly amount.</p>
+        )}
+        {envelopes.map(env => {
+          const spent = spentByCategory[env.category] || 0;
+          const remaining = env.amount - spent;
+          const pct = env.amount > 0 ? Math.min(100, Math.round((spent / env.amount) * 100)) : 0;
+          const isOver = remaining < 0;
+          return (
+            <div key={env.id} style={{ padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: `${env.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon name={env.icon} size={14} color={env.color} />
+                  </div>
+                  <div>
+                    <p style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: 0 }}>{env.category}</p>
+                    <p style={{ color: T.textSub, fontSize: 11, margin: "1px 0 0" }}>${spent.toLocaleString()} of ${env.amount.toLocaleString()} spent</p>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ color: isOver ? T.red : T.green, fontWeight: 800, fontSize: 14, margin: 0 }}>{isOver ? "-" : ""}${Math.abs(remaining).toLocaleString()}</p>
+                  <p style={{ color: T.textSub, fontSize: 10, margin: "1px 0 0" }}>{isOver ? "over" : "left"}</p>
+                </div>
+              </div>
+              <ProgressBar pct={pct} color={isOver ? T.red : env.color} height={6} />
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button onClick={() => { setEditEnv(env); setNewAmt(String(env.amount)); }} style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "6px 0", cursor: "pointer", color: T.textMid, fontSize: 11, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>Edit Amount</button>
+                <button onClick={() => removeEnvelope(env.id)} style={{ background: "rgba(255,90,110,0.08)", border: "1px solid rgba(255,90,110,0.2)", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: T.red, fontSize: 11, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>
+                  <Icon name="x" size={12} color={T.red} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {(showAdd || editEnv) && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)", padding: 20 }} onClick={() => { setShowAdd(false); setEditEnv(null); setNewCat(""); setNewAmt(""); }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: 18, padding: 24, width: "100%", maxWidth: 380, border: `1px solid ${T.borderHi}` }}>
+            <h3 style={{ color: T.text, fontSize: 17, fontWeight: 700, margin: "0 0 16px" }}>{editEnv ? `Edit ${editEnv.category}` : "New Envelope"}</h3>
+            {!editEnv && (
+              <>
+                <label style={S.label}>Category name</label>
+                <input value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="e.g. Food, Transport, Fun" style={{ ...S.input, marginBottom: 14 }} />
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                  {["Food", "Transport", "Shopping", "Entertainment", "Health", "Other"].map(c => (
+                    <button key={c} onClick={() => setNewCat(c)} style={{ background: newCat === c ? T.accentLo : "rgba(255,255,255,0.03)", border: newCat === c ? `1px solid ${T.accent}50` : `1px solid ${T.border}`, borderRadius: 99, padding: "5px 12px", cursor: "pointer", color: newCat === c ? T.accent : T.textSub, fontSize: 11, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>{c}</button>
+                  ))}
+                </div>
+                <label style={S.label}>Color</label>
+                <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                  {colorOptions.map(c => (
+                    <button key={c} onClick={() => setNewColor(c)} style={{ width: 28, height: 28, borderRadius: "50%", background: c, border: newColor === c ? "2px solid #fff" : "2px solid transparent", cursor: "pointer" }} />
+                  ))}
+                </div>
+              </>
+            )}
+            <label style={S.label}>Monthly amount ($)</label>
+            <div style={{ position: "relative", marginBottom: 18 }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={newAmt} onChange={e => setNewAmt(e.target.value)} type="number" placeholder="0.00" style={{ ...S.input, paddingLeft: 28, fontSize: 18, fontWeight: 700 }} autoFocus />
+            </div>
+            {unassigned > 0 && !editEnv && (
+              <button onClick={() => setNewAmt(String(Math.round(unassigned)))} style={{ ...S.ghostBtn, marginBottom: 10, fontSize: 12, padding: "9px 0" }}>Use remaining ${unassigned.toLocaleString()}</button>
+            )}
+            <button onClick={editEnv ? saveEdit : addEnvelope} disabled={editEnv ? !newAmt : (!newCat.trim() || !newAmt)} style={{ ...S.primaryBtn(newColor), opacity: (editEnv ? newAmt : (newCat.trim() && newAmt)) ? 1 : 0.5 }}>
+              {editEnv ? "Save Changes" : "Create Envelope"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FinancialCalendar({ goals, bills = [], checkInLog = [], profile }) {
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -10722,6 +10884,7 @@ export default function App() {
   const [dbInvestEdu, setDbInvestEdu] = useState(null);
   const [dbNotifSettings, setDbNotifSettings] = useState(null);
   const [dbHustles, setDbHustles] = useState([]);
+  const [dbEnvelopes, setDbEnvelopes] = useState([]);
   const [restoring, setRestoring] = useState(true);
 
   // Restore previous session on page load (stay signed in) — and handle the
@@ -10856,6 +11019,10 @@ export default function App() {
       const hRows2 = await dbRows("hustle_entries", uid);
       if (Array.isArray(hRows2)) setDbHustles(hRows2.map(r => ({ id: r.id, name: r.name, category: r.category, color: r.color, icon: r.icon || "dollarSign", entries: r.entries || [] })));
 
+      // Load zero-based budget envelopes
+      const envRows = await dbRows("budget_envelopes", uid);
+      if (Array.isArray(envRows)) setDbEnvelopes(envRows.map(r => ({ id: r.id, category: r.category, amount: Number(r.amount), color: r.color, icon: r.icon || "wallet" })));
+
     } catch (err) {
       console.error("Error loading user data:", err);
       setScreen("onboarding");
@@ -10948,6 +11115,13 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
   };
   const removeHustleDb = (id) => { setDbHustles(prev => prev.filter(h => h.id !== id)); if (authUser) dbDelete("hustle_entries", id, authUser.id); };
 
+  // ── Persist zero-based budget envelopes ────────────────────────────
+  const persistEnvelope = (env) => {
+    if (!authUser) return;
+    dbUpsert("budget_envelopes", { id: env.id, user_id: authUser.id, category: env.category, amount: env.amount, color: env.color, icon: env.icon });
+  };
+  const removeEnvelopeDb = (id) => { if (authUser) dbDelete("budget_envelopes", id, authUser.id); };
+
   // ── Persist a daily net worth snapshot (one row per user per day) ─
   const lastSnapshotRef = useRef({ date: null, value: null });
   const persistSnapshot = (netWorth) => {
@@ -10966,14 +11140,14 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
     if (!authUser) return;
     const uid = authUser.id;
     const hdrs = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${sb._token() || SUPABASE_KEY}` };
-    const tables = ["goals", "bills", "assets", "liabilities", "check_ins", "school_progress", "class_members", "goal_transactions", "hustle_entries", "notification_reads", "subscriptions", "bill_payments", "debts", "networth_snapshots", "invest_holdings", "invest_education", "notification_settings"];
+    const tables = ["goals", "bills", "assets", "liabilities", "check_ins", "school_progress", "class_members", "goal_transactions", "hustle_entries", "notification_reads", "subscriptions", "bill_payments", "debts", "networth_snapshots", "invest_holdings", "invest_education", "notification_settings", "budget_envelopes"];
     await Promise.all(tables.map(t =>
       fetch(`${SUPABASE_URL}/rest/v1/${t}?user_id=eq.${uid}`, { method: "DELETE", headers: hdrs }).catch(() => {})
     ));
     await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, { method: "DELETE", headers: hdrs }).catch(() => {});
     await sb.signOut();
     setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0);
-    setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setAuthReady(true);
+    setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setDbEnvelopes([]); setAuthReady(true);
   };
 
   const persistSchool = (p) => {
@@ -11100,6 +11274,7 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
     { id: "goals",     icon: "target",     label: "Goals"     },
     { id: "calendar",  icon: "calendar",   label: "Calendar"  },
     { id: "bills",     icon: "repeat",     label: "Bills"     },
+    { id: "budget",    icon: "pieChart",   label: "Budget"    },
     { id: "networth",  icon: "barChart",   label: "Wealth"    },
     { id: "debt",      icon: "wallet",     label: "Debt"      },
     { id: "hustle",    icon: "zap",        label: "Hustle"    },
@@ -11565,10 +11740,11 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "review"    && <div style={{ paddingTop: 16 }}><AnnualReview goals={goals} profile={profile} checkInLog={checkInLog} streak={streak} bills={dbBills} netWorthSnapshots={dbSnapshots} /></div>}
       {tab === "calendar" && <div style={{ paddingTop: 16 }}><FinancialCalendar goals={goals} bills={dbBills} checkInLog={checkInLog} profile={profile} /></div>}
       {tab === "bills" && <div style={{ paddingTop: 16 }}><BillsTab profileSubs={profile?.subscriptionsList || []} initialBills={dbBills} onPersist={persistBill} onDelete={removeBillDb} /></div>}
+      {tab === "budget" && <div style={{ paddingTop: 16 }}><ZeroBasedBudget profile={profile} checkInLog={checkInLog} initialEnvelopes={dbEnvelopes} onPersistEnvelope={persistEnvelope} onDeleteEnvelope={removeEnvelopeDb} /></div>}
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab initialHoldings={dbHoldings} onPersistHolding={persistHolding} onDeleteHolding={removeHoldingDb} /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
       {tab === "deals" && <div style={{ paddingTop: 16 }}><DealsTab /></div>}
-      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setAuthReady(true); }} /></div>}
+      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setDbEnvelopes([]); setAuthReady(true); }} /></div>}
 
       {/* Bottom Nav — primary 6 tabs + More */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(8,9,26,0.97)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(123,110,246,0.15)", zIndex: 100, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)" }}>
