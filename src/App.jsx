@@ -3606,7 +3606,138 @@ function WeeklySpendingChart({ checkInLog = [] }) {
 }
 
 // ── Profile Tab ───────────────────────────────────────────────────────────────
-function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = null, onSaveProfile = () => {}, onDeleteAccount = null, checkInLog = [], streak = 0, joinDate = null }) {
+// ── Printable Financial Report (real "PDF progress report" — via browser print) ─────
+function FinancialReportView({ profile, goals = [], assets = [], liabilities = [], debts = [], envelopes = [], userName, onClose }) {
+  const totalSaved = goals.reduce((a, g) => a + g.saved, 0);
+  const totalTarget = goals.reduce((a, g) => a + g.target, 0);
+  const totalAssets = assets.reduce((a, x) => a + x.amount, 0) + totalSaved;
+  const totalLiabilities = liabilities.reduce((a, x) => a + x.amount, 0);
+  const netWorth = totalAssets - totalLiabilities;
+  const totalDebt = debts.reduce((a, d) => a + d.balance, 0);
+  const mo = profile?.monthlyIncome || 0;
+  const realSaved = Math.max(0, mo - (profile?.totalFixed || 0) - (profile?.totalVariable || 0));
+  const savingsRate = mo > 0 ? Math.round((realSaved / mo) * 100) : 0;
+  const today = new Date().toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" });
+
+  useEffect(() => {
+    document.body.classList.add("ff-report-mode");
+    return () => document.body.classList.remove("ff-report-mode");
+  }, []);
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#fff", zIndex: 1000, overflowY: "auto" }}>
+      <style>{`
+        @media print {
+          @page { margin: 0.6in; }
+          .ff-no-print { display: none !important; }
+          body.ff-report-mode { background: #fff !important; }
+        }
+      `}</style>
+      <div className="ff-no-print" style={{ position: "sticky", top: 0, background: "#fff", borderBottom: "1px solid #e5e5e5", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
+        <button onClick={onClose} style={{ background: "#f2f2f2", border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer", color: "#333", fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 13 }}>Close</button>
+        <button onClick={() => window.print()} style={{ background: "#1A1A2E", border: "none", borderRadius: 8, padding: "9px 18px", cursor: "pointer", color: "#fff", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+          <Icon name="dollarSign" size={14} color="#fff" />Save as PDF
+        </button>
+      </div>
+
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 32px 60px", color: "#1A1A2E", fontFamily: "'Inter',sans-serif" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32, paddingBottom: 20, borderBottom: "2px solid #1A1A2E" }}>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 4px", letterSpacing: -0.5 }}>Freedom Funds</h1>
+            <p style={{ color: "#666", fontSize: 13, margin: 0 }}>Financial Progress Report</p>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontWeight: 700, fontSize: 14, margin: "0 0 2px" }}>{userName || "Member"}</p>
+            <p style={{ color: "#666", fontSize: 12, margin: 0 }}>{today}</p>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 32 }}>
+          {[
+            { label: "Net Worth", value: `${netWorth < 0 ? "-" : ""}$${Math.abs(netWorth).toLocaleString()}` },
+            { label: "Total Saved", value: `$${totalSaved.toLocaleString()}` },
+            { label: "Savings Rate", value: `${savingsRate}%` },
+          ].map(s => (
+            <div key={s.label} style={{ border: "1px solid #e5e5e5", borderRadius: 10, padding: "14px 12px", textAlign: "center" }}>
+              <p style={{ fontSize: 19, fontWeight: 900, margin: "0 0 4px" }}>{s.value}</p>
+              <p style={{ color: "#666", fontSize: 10, margin: 0, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        <h2 style={{ fontSize: 15, fontWeight: 800, margin: "0 0 12px", paddingBottom: 6, borderBottom: "1px solid #e5e5e5" }}>Savings Goals</h2>
+        {goals.length === 0 ? (
+          <p style={{ color: "#666", fontSize: 13, margin: "0 0 28px" }}>No goals set up yet.</p>
+        ) : (
+          <div style={{ marginBottom: 28 }}>
+            {goals.map(g => {
+              const pct = Math.round((g.saved / g.target) * 100);
+              return (
+                <div key={g.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid #f0f0f0" }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>{g.name}</p>
+                  <p style={{ fontSize: 13, margin: 0 }}>${g.saved.toLocaleString()} / ${g.target.toLocaleString()} <span style={{ color: "#666" }}>({pct}%)</span></p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <h2 style={{ fontSize: 15, fontWeight: 800, margin: "0 0 12px", paddingBottom: 6, borderBottom: "1px solid #e5e5e5" }}>Net Worth Breakdown</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#00A876", margin: "0 0 6px", textTransform: "uppercase" }}>Assets — ${totalAssets.toLocaleString()}</p>
+            {assets.map(a => (
+              <div key={a.id} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 12 }}>
+                <span>{a.name}</span><span>${a.amount.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#E5484D", margin: "0 0 6px", textTransform: "uppercase" }}>Liabilities — ${totalLiabilities.toLocaleString()}</p>
+            {liabilities.map(l => (
+              <div key={l.id} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 12 }}>
+                <span>{l.name}</span><span>${l.amount.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {debts.length > 0 && (
+          <>
+            <h2 style={{ fontSize: 15, fontWeight: 800, margin: "0 0 12px", paddingBottom: 6, borderBottom: "1px solid #e5e5e5" }}>Debt — ${totalDebt.toLocaleString()} total</h2>
+            <div style={{ marginBottom: 28 }}>
+              {debts.map(d => (
+                <div key={d.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f0f0f0", fontSize: 13 }}>
+                  <span>{d.name} <span style={{ color: "#666" }}>({d.rate}% APR)</span></span>
+                  <span>${d.balance.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {envelopes.length > 0 && (
+          <>
+            <h2 style={{ fontSize: 15, fontWeight: 800, margin: "0 0 12px", paddingBottom: 6, borderBottom: "1px solid #e5e5e5" }}>Monthly Budget</h2>
+            <div style={{ marginBottom: 28 }}>
+              {envelopes.map(e => (
+                <div key={e.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f0f0f0", fontSize: 13 }}>
+                  <span>{e.category}</span>
+                  <span>${e.amount.toLocaleString()}/mo</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <p style={{ color: "#999", fontSize: 10, textAlign: "center", margin: "40px 0 0" }}>Generated by Freedom Funds on {today}. This report reflects the numbers you entered and is not financial advice.</p>
+      </div>
+    </div>
+  );
+}
+
+function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = null, onSaveProfile = () => {}, onDeleteAccount = null, checkInLog = [], streak = 0, joinDate = null, assets = [], liabilities = [], debts = [], envelopes = [] }) {
+  const [showReport, setShowReport] = useState(false);
   const [legal, setLegal] = useState(null);
   const [delStep, setDelStep] = useState(0);
   const [delBusy, setDelBusy] = useState(false);
@@ -3672,6 +3803,18 @@ function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = nu
           </div>
         </button>
       )}
+
+      <button onClick={() => setShowReport(true)} style={{ ...S.card, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", width: "100%", fontFamily: "'Inter',sans-serif" }}>
+        <div style={{ width: 34, height: 34, borderRadius: 9, background: T.accentLo, border: `1px solid ${T.accent}40`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon name="barChart" size={16} color={T.accent} />
+        </div>
+        <div>
+          <p style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: 0 }}>Download Progress Report</p>
+          <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>A clean PDF summary of your goals, net worth, and budget</p>
+        </div>
+      </button>
+
+      {showReport && <FinancialReportView profile={profile} goals={goals} assets={assets} liabilities={liabilities} debts={debts} envelopes={envelopes} userName={userName} onClose={() => setShowReport(false)} />}
 
       <div style={{ background: `linear-gradient(135deg, ${T.accentLo}, ${T.card})`, border: `1px solid ${T.accent}25`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
         <div style={{ width: 60, height: 60, borderRadius: "50%", background: `linear-gradient(135deg, ${T.accent}, ${T.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700, color: "#fff", border: `2px solid ${T.accent}50` }}>{initials}</div>
@@ -8907,7 +9050,16 @@ function MortgageCalculator({ profile, goals = [], debts = [] }) {
   const [insuranceMonthly, setInsuranceMonthly] = useState("120");
   const [hoaMonthly, setHoaMonthly] = useState("0");
   const [extraMonthly, setExtraMonthly] = useState("0");
-  const [tab, setTabInner] = useState("afford"); // afford | schedule
+  const [tab, setTabInner] = useState("afford"); // afford | schedule | refi
+
+  // Refinance calculator inputs
+  const [currentBalance, setCurrentBalance] = useState("280000");
+  const [currentRate, setCurrentRate] = useState("7.5");
+  const [currentRemainingYears, setCurrentRemainingYears] = useState("27");
+  const [newRate, setNewRate] = useState("6.3");
+  const [newTerm, setNewTerm] = useState(30);
+  const [closingCosts, setClosingCosts] = useState("6000");
+  const [yearsPlanToStay, setYearsPlanToStay] = useState("10");
 
   const price = parseFloat(homePrice) || 0;
   const down = Math.min(parseFloat(downPayment) || 0, price);
@@ -8972,6 +9124,29 @@ function MortgageCalculator({ profile, goals = [], debts = [] }) {
   };
   const c15 = compare(15), c30 = compare(30);
 
+  // Refinance math — compares the real remaining cost of the current loan vs a new one
+  const curBal = parseFloat(currentBalance) || 0;
+  const curR = (parseFloat(currentRate) || 0) / 100 / 12;
+  const curN = (parseFloat(currentRemainingYears) || 0) * 12;
+  const currentPayment = curR > 0 && curBal > 0 ? Math.round(curBal * (curR * Math.pow(1 + curR, curN)) / (Math.pow(1 + curR, curN) - 1)) : 0;
+  const currentRemainingInterest = Math.round(currentPayment * curN - curBal);
+
+  const newR = (parseFloat(newRate) || 0) / 100 / 12;
+  const newN = newTerm * 12;
+  const newPayment = newR > 0 && curBal > 0 ? Math.round(curBal * (newR * Math.pow(1 + newR, newN)) / (Math.pow(1 + newR, newN) - 1)) : 0;
+  const newTotalInterest = Math.round(newPayment * newN - curBal);
+
+  const monthlySavings = currentPayment - newPayment;
+  const costs = parseFloat(closingCosts) || 0;
+  const breakEvenMonths = monthlySavings > 0 ? Math.ceil(costs / monthlySavings) : null;
+  const stayMonths = (parseFloat(yearsPlanToStay) || 0) * 12;
+  const worthIt = breakEvenMonths !== null && breakEvenMonths < stayMonths;
+  // Lifetime savings must account for the new loan's longer/shorter term — compare total
+  // remaining cost of staying put vs. total cost of refinancing (payments + closing costs)
+  const lifetimeCostCurrent = currentPayment * curN;
+  const lifetimeCostNew = newPayment * newN + costs;
+  const lifetimeSavings = Math.round(lifetimeCostCurrent - lifetimeCostNew);
+
   return (
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
       <div style={{ ...S.card, background: "linear-gradient(135deg, #0A1A2A 0%, #0F0E2A 100%)" }}>
@@ -8990,11 +9165,12 @@ function MortgageCalculator({ profile, goals = [], debts = [] }) {
       </div>
 
       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 5, display: "flex", gap: 4 }}>
-        {[{ id: "afford", label: "Affordability" }, { id: "schedule", label: "Amortization" }].map(t => (
+        {[{ id: "afford", label: "Affordability" }, { id: "schedule", label: "Amortization" }, { id: "refi", label: "Refinance" }].map(t => (
           <button key={t.id} onClick={() => setTabInner(t.id)} style={{ flex: 1, background: tab === t.id ? T.accentLo : "none", border: tab === t.id ? `1px solid ${T.accent}50` : "1px solid transparent", borderRadius: 7, padding: "9px 0", cursor: "pointer", color: tab === t.id ? T.accent : T.textSub, fontFamily: "'Inter',sans-serif", fontWeight: tab === t.id ? 700 : 500, fontSize: 13 }}>{t.label}</button>
         ))}
       </div>
 
+      {tab !== "refi" && (
       <div style={S.card}>
         <SectionLabel>Loan Details</SectionLabel>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -9043,8 +9219,102 @@ function MortgageCalculator({ profile, goals = [], debts = [] }) {
           </div>
         </div>
       </div>
+      )}
 
-      {tab === "afford" ? (
+      {tab === "refi" && (
+        <>
+          <div style={S.card}>
+            <SectionLabel>Your Current Loan</SectionLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={S.label}>Remaining balance ($)</label>
+                <div style={{ position: "relative" }}>
+                  <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+                  <input value={currentBalance} onChange={e => setCurrentBalance(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={S.label}>Current rate (%)</label>
+                  <input value={currentRate} onChange={e => setCurrentRate(e.target.value)} type="number" step="0.1" style={S.input} />
+                </div>
+                <div>
+                  <label style={S.label}>Years remaining</label>
+                  <input value={currentRemainingYears} onChange={e => setCurrentRemainingYears(e.target.value)} type="number" style={S.input} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={S.card}>
+            <SectionLabel>New Loan Offer</SectionLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={S.label}>New rate (%)</label>
+                  <input value={newRate} onChange={e => setNewRate(e.target.value)} type="number" step="0.1" style={S.input} />
+                </div>
+                <div>
+                  <label style={S.label}>New term</label>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {[15, 30].map(t => (
+                      <button key={t} onClick={() => setNewTerm(t)} style={{ flex: 1, background: newTerm === t ? T.accentLo : "rgba(255,255,255,0.04)", border: newTerm === t ? `1px solid ${T.accent}50` : `1px solid ${T.border}`, borderRadius: 8, padding: "12px 0", cursor: "pointer", color: newTerm === t ? T.accent : T.textSub, fontWeight: 700, fontSize: 13, fontFamily: "'Inter',sans-serif" }}>{t}yr</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={S.label}>Closing costs ($)</label>
+                  <input value={closingCosts} onChange={e => setClosingCosts(e.target.value)} type="number" style={S.input} />
+                </div>
+                <div>
+                  <label style={S.label}>Years you'll stay</label>
+                  <input value={yearsPlanToStay} onChange={e => setYearsPlanToStay(e.target.value)} type="number" style={S.input} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ ...S.card, background: `${worthIt ? T.green : T.gold}0a`, border: `1px solid ${worthIt ? T.green : T.gold}30` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <SectionLabel>Should You Refinance?</SectionLabel>
+              <span style={{ background: `${worthIt ? T.green : T.gold}18`, color: worthIt ? T.green : T.gold, border: `1px solid ${worthIt ? T.green : T.gold}40`, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, fontFamily: "'Inter',sans-serif" }}>{worthIt ? "Likely worth it" : "Maybe not yet"}</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+              <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "11px 12px" }}>
+                <p style={{ color: monthlySavings > 0 ? T.green : T.red, fontWeight: 900, fontSize: 18, margin: 0 }}>{monthlySavings >= 0 ? "+" : "-"}${Math.abs(monthlySavings).toLocaleString()}</p>
+                <p style={{ color: T.textSub, fontSize: 10, margin: "3px 0 0" }}>Monthly payment change</p>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "11px 12px" }}>
+                <p style={{ color: T.text, fontWeight: 900, fontSize: 18, margin: 0 }}>{breakEvenMonths !== null ? `${Math.floor(breakEvenMonths / 12)}y ${breakEvenMonths % 12}mo` : "—"}</p>
+                <p style={{ color: T.textSub, fontSize: 10, margin: "3px 0 0" }}>To break even on costs</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <p style={{ color: T.textMid, fontSize: 12, margin: 0 }}>Current payment</p>
+              <p style={{ color: T.text, fontWeight: 700, fontSize: 13, margin: 0 }}>${currentPayment.toLocaleString()}/mo</p>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <p style={{ color: T.textMid, fontSize: 12, margin: 0 }}>New payment</p>
+              <p style={{ color: T.text, fontWeight: 700, fontSize: 13, margin: 0 }}>${newPayment.toLocaleString()}/mo</p>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <p style={{ color: T.textMid, fontSize: 12, margin: 0 }}>Lifetime cost difference</p>
+              <p style={{ color: lifetimeSavings > 0 ? T.green : T.red, fontWeight: 700, fontSize: 13, margin: 0 }}>{lifetimeSavings >= 0 ? "Saves" : "Costs"} ${Math.abs(lifetimeSavings).toLocaleString()}</p>
+            </div>
+            <p style={{ color: T.textMid, fontSize: 12, margin: "12px 0 0", lineHeight: 1.6 }}>
+              {breakEvenMonths === null
+                ? "This new rate doesn't lower your payment, so refinancing likely isn't worth the closing costs."
+                : worthIt
+                  ? `You'd break even in ${Math.floor(breakEvenMonths / 12)}y ${breakEvenMonths % 12}mo — well before your planned ${yearsPlanToStay}-year stay. Refinancing likely makes sense here.`
+                  : `You'd need ${Math.floor(breakEvenMonths / 12)}y ${breakEvenMonths % 12}mo to recoup the closing costs, longer than the ${yearsPlanToStay} years you plan to stay. The math doesn't favor refinancing unless your plans change.`}
+            </p>
+          </div>
+        </>
+      )}
+
+      {tab !== "refi" && (tab === "afford" ? (
         <>
           <div style={S.card}>
             <SectionLabel>Monthly Payment Breakdown</SectionLabel>
@@ -9145,7 +9415,7 @@ function MortgageCalculator({ profile, goals = [], debts = [] }) {
             </div>
           </div>
         </>
-      )}
+      ))}
     </div>
   );
 }
@@ -12057,7 +12327,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab initialHoldings={dbHoldings} onPersistHolding={persistHolding} onDeleteHolding={removeHoldingDb} /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
       {tab === "deals" && <div style={{ paddingTop: 16 }}><DealsTab /></div>}
-      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setDbEnvelopes([]); setAuthReady(true); }} /></div>}
+      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} assets={dbAssets} liabilities={dbLiabs} debts={dbDebts} envelopes={dbEnvelopes} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setDbEnvelopes([]); setAuthReady(true); }} /></div>}
 
       {/* Bottom Nav — primary 6 tabs + More */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(8,9,26,0.97)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(123,110,246,0.15)", zIndex: 100, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)" }}>
