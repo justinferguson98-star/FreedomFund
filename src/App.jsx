@@ -8275,8 +8275,8 @@ function InvestEducationPath({ onTabChange, initialProgress = null, onSaveProgre
 }
 
 // ── Side Hustle Income Tracker ───────────────────────────────────────────────
-function SideHustleTab({ profile }) {
-  const [hustles, setHustles] = useState([]);
+function SideHustleTab({ profile, initialHustles = [], onPersistHustle = () => {}, onDeleteHustle = () => {} }) {
+  const [hustles, setHustles] = useState(initialHustles);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCat,  setNewCat]  = useState("Freelance");
@@ -8288,7 +8288,18 @@ function SideHustleTab({ profile }) {
   const cats = ["Freelance","Gig Work","E-Commerce","Rental","Tutoring","Content","Consulting","Other"];
   const catColors = { "Freelance": T.purple, "Gig Work": T.orange, "E-Commerce": T.teal, "Rental": T.blue, "Tutoring": T.green, "Content": T.gold, "Consulting": T.accent, "Other": T.textSub };
 
-  const totalThisMonth = hustles.reduce((a, h) => a + h.entries.filter(e => e.date.startsWith("Jun")).reduce((b, e) => b + e.amount, 0), 0);
+  // Real "this month" — based on the actual current year/month, not a hardcoded string
+  const now = new Date();
+  const isThisMonth = (dateStr) => {
+    const d = new Date(dateStr + "T00:00:00");
+    return !isNaN(d) && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  };
+  const formatEntryDate = (dateStr) => {
+    const d = new Date(dateStr + "T00:00:00");
+    return isNaN(d) ? dateStr : d.toLocaleDateString([], { month: "short", day: "numeric" });
+  };
+
+  const totalThisMonth = hustles.reduce((a, h) => a + h.entries.filter(e => isThisMonth(e.date)).reduce((b, e) => b + e.amount, 0), 0);
   const totalAllTime   = hustles.reduce((a, h) => a + h.entries.reduce((b, e) => b + e.amount, 0), 0);
   const taxRate        = 0.25;
   const taxOwed        = Math.round(totalThisMonth * taxRate);
@@ -8297,13 +8308,22 @@ function SideHustleTab({ profile }) {
 
   const addEntry = () => {
     if (!entryAmt || !logEntry) return;
-    setHustles(p => p.map(h => h.id === logEntry ? { ...h, entries: [{ date: "Jun " + new Date().getDate(), amount: parseFloat(entryAmt), note: entryNote || "Income logged" }, ...h.entries] } : h));
+    const dateStr = new Date().toISOString().split("T")[0];
+    let updatedHustle = null;
+    setHustles(p => p.map(h => {
+      if (h.id !== logEntry) return h;
+      updatedHustle = { ...h, entries: [{ date: dateStr, amount: parseFloat(entryAmt), note: entryNote || "Income logged" }, ...h.entries] };
+      return updatedHustle;
+    }));
+    if (updatedHustle) onPersistHustle(updatedHustle);
     setEntryAmt(""); setEntryNote(""); setLogEntry(null);
   };
 
   const addHustle = () => {
     if (!newName) return;
-    setHustles(p => [...p, { id: Date.now(), name: newName, category: newCat, color: catColors[newCat] || T.purple, icon: "dollarSign", entries: [] }]);
+    const newHustle = { id: Date.now(), name: newName, category: newCat, color: catColors[newCat] || T.purple, icon: "dollarSign", entries: [] };
+    setHustles(p => [...p, newHustle]);
+    onPersistHustle(newHustle);
     setNewName(""); setShowAdd(false);
   };
 
@@ -8331,7 +8351,7 @@ function SideHustleTab({ profile }) {
 
       {/* Hustle cards */}
       {hustles.map(h => {
-        const monthTotal = h.entries.filter(e => e.date.startsWith("Jun")).reduce((a, e) => a + e.amount, 0);
+        const monthTotal = h.entries.filter(e => isThisMonth(e.date)).reduce((a, e) => a + e.amount, 0);
         const isOpen = expanded === h.id;
         return (
           <div key={h.id} style={{ ...S.card, padding: 0, overflow: "hidden" }}>
@@ -8359,7 +8379,7 @@ function SideHustleTab({ profile }) {
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                       <div>
                         <p style={{ color: T.textMid, fontSize: 13, fontWeight: 600, margin: 0 }}>{e.note}</p>
-                        <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>{e.date}</p>
+                        <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>{formatEntryDate(e.date)}</p>
                       </div>
                       <p style={{ color: T.green, fontWeight: 700, fontSize: 14, margin: 0 }}>+${e.amount}</p>
                     </div>
@@ -10742,6 +10762,7 @@ export default function App() {
   const [dbHoldings, setDbHoldings] = useState([]);
   const [dbInvestEdu, setDbInvestEdu] = useState(null);
   const [dbNotifSettings, setDbNotifSettings] = useState(null);
+  const [dbHustles, setDbHustles] = useState([]);
   const [restoring, setRestoring] = useState(true);
 
   // Restore previous session on page load (stay signed in)
@@ -10850,6 +10871,10 @@ export default function App() {
       const nsRows = await dbRows("notification_settings", uid);
       if (nsRows[0]) setDbNotifSettings({ settings: nsRows[0].settings || null, dnd: nsRows[0].dnd || false });
 
+      // Load side hustle income streams
+      const hRows2 = await dbRows("hustle_entries", uid);
+      if (Array.isArray(hRows2)) setDbHustles(hRows2.map(r => ({ id: r.id, name: r.name, category: r.category, color: r.color, icon: r.icon || "dollarSign", entries: r.entries || [] })));
+
     } catch (err) {
       console.error("Error loading user data:", err);
       setScreen("onboarding");
@@ -10934,6 +10959,14 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
     dbUpsert("notification_settings", { id: authUser.id, user_id: authUser.id, settings: p.settings, dnd: p.dnd });
   };
 
+  // ── Persist side hustle income streams ─────────────────────────────
+  const persistHustle = (h) => {
+    setDbHustles(prev => prev.some(x => x.id === h.id) ? prev.map(x => x.id === h.id ? h : x) : [...prev, h]);
+    if (!authUser) return;
+    dbUpsert("hustle_entries", { id: h.id, user_id: authUser.id, name: h.name, category: h.category, color: h.color, icon: h.icon, entries: h.entries });
+  };
+  const removeHustleDb = (id) => { setDbHustles(prev => prev.filter(h => h.id !== id)); if (authUser) dbDelete("hustle_entries", id, authUser.id); };
+
   // ── Persist a daily net worth snapshot (one row per user per day) ─
   const lastSnapshotRef = useRef({ date: null, value: null });
   const persistSnapshot = (netWorth) => {
@@ -10959,7 +10992,7 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
     await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, { method: "DELETE", headers: hdrs }).catch(() => {});
     await sb.signOut();
     setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0);
-    setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setAuthReady(true);
+    setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setAuthReady(true);
   };
 
   const persistSchool = (p) => {
@@ -11529,7 +11562,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
           </button>
         </div>
       </div>}
-      {tab === "hustle"    && <div style={{ paddingTop: 16 }}><SideHustleTab profile={profile} /></div>}
+      {tab === "hustle"    && <div style={{ paddingTop: 16 }}><SideHustleTab profile={profile} initialHustles={dbHustles} onPersistHustle={persistHustle} onDeleteHustle={removeHustleDb} /></div>}
       {tab === "tax"       && <div style={{ paddingTop: 16 }}><TaxEstimator profile={profile} /></div>}
       {tab === "emergency" && <div style={{ paddingTop: 16 }}><EmergencyFundCalc profile={profile} goals={goals} onNavigate={setTab} /></div>}
       {tab === "joneses"   && <div style={{ paddingTop: 16 }}><JonesesComparison profile={profile} goals={goals} debts={dbDebts} netWorth={dbAssets.reduce((a, x) => a + (Number(x.amount) || 0), 0) + goals.reduce((a, g) => a + g.saved, 0) - dbLiabs.reduce((a, x) => a + (Number(x.amount) || 0), 0)} /></div>}
@@ -11573,7 +11606,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab initialHoldings={dbHoldings} onPersistHolding={persistHolding} onDeleteHolding={removeHoldingDb} /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
       {tab === "deals" && <div style={{ paddingTop: 16 }}><DealsTab /></div>}
-      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setAuthReady(true); }} /></div>}
+      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setAuthReady(true); }} /></div>}
 
       {/* Bottom Nav — primary 6 tabs + More */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(8,9,26,0.97)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(123,110,246,0.15)", zIndex: 100, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)" }}>
