@@ -85,6 +85,35 @@ const sb = {
     });
     return r.json();
   },
+
+  // Establish a session directly from tokens already issued by Supabase — used
+  // when the person arrives back at the app via a recovery, magic-link, or
+  // confirmation email link, which puts the tokens in the URL instead of
+  // requiring them to type a password.
+  setSessionFromTokens: async (access_token, refresh_token) => {
+    _session = { access_token, refresh_token };
+    try {
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${access_token}` },
+      });
+      const user = await r.json();
+      if (user && !user.error && user.id) {
+        _session.user = user;
+        _saveSession(_session);
+        return user;
+      }
+      return null;
+    } catch (e) { return null; }
+  },
+
+  updatePassword: async (newPassword) => {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": `Bearer ${_session?.access_token || ""}` },
+      body: JSON.stringify({ password: newPassword }),
+    });
+    return r.json();
+  },
 };
 
 // ── Generic data helpers ────────────────────────────────────────────────
@@ -167,6 +196,38 @@ const PiggyLogo = ({ size = 44, float = false }) => (
     <rect x="152" y="244" width="22" height="20" fill="#8EB018" rx="7" />
   </svg>
 );
+
+// ── Reset Password (reached via a password-recovery email link) ────────────────
+function ResetPasswordScreen({ onDone }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm]   = useState("");
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
+
+  const handleSubmit = async () => {
+    setError("");
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (password !== confirm) { setError("Passwords don't match"); return; }
+    setLoading(true);
+    const data = await sb.updatePassword(password);
+    setLoading(false);
+    if (data.error || data.error_description) { setError(data.error_description || data.msg || "Something went wrong. Try again."); return; }
+    onDone();
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 380 }}>
+        <h1 style={{ color: T.text, fontSize: 22, fontWeight: 800, margin: "0 0 8px", textAlign: "center" }}>Set a new password</h1>
+        <p style={{ color: T.textSub, fontSize: 13, margin: "0 0 24px", textAlign: "center", lineHeight: 1.6 }}>You're verified — choose a new password to finish.</p>
+        <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="New password" style={{ ...S.input, marginBottom: 10 }} />
+        <input value={confirm} onChange={e => setConfirm(e.target.value)} type="password" placeholder="Confirm new password" style={{ ...S.input, marginBottom: 16 }} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+        {error && <p style={{ color: T.red, fontSize: 12, margin: "0 0 12px", textAlign: "center" }}>{error}</p>}
+        <button onClick={handleSubmit} disabled={loading} style={{ ...S.primaryBtn(), opacity: loading ? 0.6 : 1 }}>{loading ? "Saving..." : "Save New Password"}</button>
+      </div>
+    </div>
+  );
+}
 
 function AuthScreen({ onAuth }) {
   const [mode,        setMode]        = useState("welcome"); // welcome | login | signup | forgot | verify
@@ -10765,8 +10826,30 @@ export default function App() {
   const [dbHustles, setDbHustles] = useState([]);
   const [restoring, setRestoring] = useState(true);
 
-  // Restore previous session on page load (stay signed in)
+  // Restore previous session on page load (stay signed in) — and handle the
+  // case where the person arrived via a password-reset, magic-link, or
+  // confirmation email, which puts an access token in the URL instead of a
+  // normal saved session.
   useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes("access_token")) {
+      const params = new URLSearchParams(hash.slice(1));
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      const type = params.get("type");
+      if (access_token) {
+        sb.setSessionFromTokens(access_token, refresh_token).then(user => {
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+          if (user) {
+            setAuthUser(user);
+            loadUserData(user.id);
+            if (type === "recovery") setScreen("resetPassword");
+          }
+          setRestoring(false);
+        });
+        return;
+      }
+    }
     sb.restore().then(u => {
       if (u) { setAuthUser(u); loadUserData(u.id); }
       setRestoring(false);
@@ -11191,6 +11274,7 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
   if (screen === "quickstart") return <QuickStartOnboarding onComplete={p => { handleOnboardingComplete(p); if (p.firstGoal) { const newGoal = { id: Date.now(), ...p.firstGoal, saved: 0, color: T.purple, icon: "target", purpose: "My first goal", isPublic: false }; setGoals(prev => [...prev, newGoal]); saveGoal(newGoal); } }} onFullOnboarding={() => setScreen("fullonboarding")} />;
   if (screen === "fullonboarding") return <>{fonts}<Onboarding onComplete={handleOnboardingComplete} /></>;
 if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { if (g) { setGoals(p => [...p, g]); saveGoal(g); } setScreen("app"); setTab("goals"); }} onCancel={() => setScreen("app")} /></>;
+  if (screen === "resetPassword") return <>{fonts}<ResetPasswordScreen onDone={() => setScreen("app")} /></>;
   if (screen === "pro") return <>{fonts}<ProScreen isPro={isPro} onClose={() => setScreen("app")} onUpgrade={() => { setIsPro(true); setScreen("app"); }} /></>;
 
   return (
