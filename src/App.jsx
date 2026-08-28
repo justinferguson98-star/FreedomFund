@@ -6124,14 +6124,19 @@ function FinancialCalendar({ goals, bills = [], checkInLog = [], profile }) {
       }
     });
 
-    // Payday
+    // Payday — show the real per-paycheck amount, not the full monthly total repeated
     const payDay = profile?.payFreq === "biweekly" ? [1, 15] : profile?.payFreq === "weekly" ? [1,8,15,22] : [1];
+    const perPaycheckAmount = profile?.payFreq === "biweekly"
+      ? Math.round((profile?.monthlyIncome || 4200) * 12 / 26)
+      : profile?.payFreq === "weekly"
+        ? Math.round((profile?.monthlyIncome || 4200) * 12 / 52)
+        : (profile?.monthlyIncome || 4200);
     payDay.forEach(d => {
       add(Math.min(d, daysInMonth), {
         id: `payday-${d}`,
         type: "payday",
         title: "Payday",
-        amount: profile?.monthlyIncome || 4200,
+        amount: perPaycheckAmount,
         subtitle: profile?.payFreq || "Monthly",
         action: "home",
       });
@@ -8694,7 +8699,10 @@ function EmergencyFundCalc({ profile, goals, onNavigate }) {
   const existingFund = goals.find(g => g.name.toLowerCase().includes("emergency"));
   const currentSaved = existingFund?.saved || 0;
   const stillNeeded  = Math.max(0, targetAmount - currentSaved);
-  const monthsToFull = stillNeeded > 0 ? Math.ceil(stillNeeded / 300) : 0;
+  const mo = profile?.monthlyIncome || 0;
+  const realMonthlySavings = Math.max(0, mo - (profile?.totalFixed || 0) - (profile?.totalVariable || 0));
+  const assumedMonthlySavings = realMonthlySavings > 0 ? realMonthlySavings : 300;
+  const monthsToFull = stillNeeded > 0 ? Math.ceil(stillNeeded / assumedMonthlySavings) : 0;
   const pct = Math.min(100, Math.round((currentSaved / targetAmount) * 100));
   const coverageMonths = Math.round(currentSaved / (monthlyEssentials || 1) * 10) / 10;
 
