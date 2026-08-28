@@ -3661,7 +3661,7 @@ function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = nu
               <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>Unlimited goals &middot; Reports &middot; Full community</p>
             </div>
           </div>
-          <span style={{ background: T.gold, color: "#0F172A", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>From $2.50/mo</span>
+          <span style={{ background: T.gold, color: "#0F172A", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>From $4.17/mo</span>
         </button>
       ) : (
         <button onClick={onUpgrade} style={{ background: `linear-gradient(135deg, ${T.gold}10, ${T.card})`, border: `1px solid ${T.gold}25`, borderRadius: 12, padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left" }}>
