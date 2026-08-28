@@ -10348,6 +10348,7 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
 
       {/* Savings goal tracker */}
       <div style={S.card}>
+        <p style={{ color: T.textSub, fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", margin: "0 0 10px" }}>Practice exercise — separate from your real Goals</p>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <SectionLabel>My Savings Goal</SectionLabel>
