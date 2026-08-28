@@ -6446,7 +6446,7 @@ function ZeroBasedBudget({ profile, checkInLog = [], initialEnvelopes = [], onPe
             <label style={S.label}>Monthly amount ($)</label>
             <div style={{ position: "relative", marginBottom: 18 }}>
               <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
-              <input value={newAmt} onChange={e => setNewAmt(e.target.value)} type="number" placeholder="0.00" style={{ ...S.input, paddingLeft: 28, fontSize: 18, fontWeight: 700 }} autoFocus />
+              <input value={newAmt} onChange={e => setNewAmt(e.target.value)} type="number" min="0" placeholder="0.00" style={{ ...S.input, paddingLeft: 28, fontSize: 18, fontWeight: 700 }} autoFocus />
             </div>
             {unassigned > 0 && !editEnv && (
               <button onClick={() => setNewAmt(String(Math.round(unassigned)))} style={{ ...S.ghostBtn, marginBottom: 10, fontSize: 12, padding: "9px 0" }}>Use remaining ${unassigned.toLocaleString()}</button>
@@ -9433,7 +9433,7 @@ function MortgageCalculator({ profile, goals = [], debts = [] }) {
   const loanAmount = Math.max(0, price - down);
   const r = (parseFloat(rate) || 0) / 100 / 12;
   const n = term * 12;
-  const monthlyPI = r > 0 && loanAmount > 0 ? Math.round(loanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)) : 0;
+  const monthlyPI = loanAmount <= 0 ? 0 : r > 0 ? Math.round(loanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)) : Math.round(loanAmount / n);
   const monthlyTax = Math.round((price * (parseFloat(propertyTaxRate) || 0) / 100) / 12);
   const monthlyInsurance = parseFloat(insuranceMonthly) || 0;
   const monthlyHoa = parseFloat(hoaMonthly) || 0;
@@ -9495,12 +9495,12 @@ function MortgageCalculator({ profile, goals = [], debts = [] }) {
   const curBal = parseFloat(currentBalance) || 0;
   const curR = (parseFloat(currentRate) || 0) / 100 / 12;
   const curN = (parseFloat(currentRemainingYears) || 0) * 12;
-  const currentPayment = curR > 0 && curBal > 0 ? Math.round(curBal * (curR * Math.pow(1 + curR, curN)) / (Math.pow(1 + curR, curN) - 1)) : 0;
+  const currentPayment = curBal <= 0 ? 0 : curR > 0 ? Math.round(curBal * (curR * Math.pow(1 + curR, curN)) / (Math.pow(1 + curR, curN) - 1)) : Math.round(curBal / curN);
   const currentRemainingInterest = Math.round(currentPayment * curN - curBal);
 
   const newR = (parseFloat(newRate) || 0) / 100 / 12;
   const newN = newTerm * 12;
-  const newPayment = newR > 0 && curBal > 0 ? Math.round(curBal * (newR * Math.pow(1 + newR, newN)) / (Math.pow(1 + newR, newN) - 1)) : 0;
+  const newPayment = curBal <= 0 ? 0 : newR > 0 ? Math.round(curBal * (newR * Math.pow(1 + newR, newN)) / (Math.pow(1 + newR, newN) - 1)) : Math.round(curBal / newN);
   const newTotalInterest = Math.round(newPayment * newN - curBal);
 
   const monthlySavings = currentPayment - newPayment;
