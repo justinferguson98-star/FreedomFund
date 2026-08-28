@@ -9040,6 +9040,186 @@ function TaxEstimator({ profile, hustles = [] }) {
 
 // ── Emergency Fund Calculator ─────────────────────────────────────────────────
 // ── Mortgage Affordability + Amortization Calculator ────────────────────────
+// ── Retirement & FIRE Calculator ─────────────────────────────────────────────
+function RetirementCalculator({ profile, goals = [] }) {
+  const retireGoal = goals.find(g => g.name.toLowerCase().includes("retire"));
+  const mo = profile?.monthlyIncome || 0;
+  const realSavingsCapacity = Math.max(0, mo - (profile?.totalFixed || 0) - (profile?.totalVariable || 0));
+
+  const [currentAge, setCurrentAge] = useState("30");
+  const [retireAge, setRetireAge] = useState("65");
+  const [currentSavings, setCurrentSavings] = useState(String(retireGoal?.saved || 0));
+  const [monthlyContribution, setMonthlyContribution] = useState(String(Math.round(realSavingsCapacity) || 300));
+  const [returnRate, setReturnRate] = useState("7");
+  const [desiredAnnualSpend, setDesiredAnnualSpend] = useState(String(profile?.totalFixed && profile?.totalVariable ? Math.round((profile.totalFixed + profile.totalVariable) * 12) : 40000));
+  const [withdrawalRate, setWithdrawalRate] = useState("4");
+
+  const age = parseInt(currentAge) || 0;
+  const rAge = parseInt(retireAge) || 0;
+  const yearsToGrow = Math.max(0, rAge - age);
+  const startBalance = parseFloat(currentSavings) || 0;
+  const monthly = parseFloat(monthlyContribution) || 0;
+  const annualReturn = (parseFloat(returnRate) || 0) / 100;
+  const monthlyReturn = annualReturn / 12;
+  const spend = parseFloat(desiredAnnualSpend) || 0;
+  const wRate = (parseFloat(withdrawalRate) || 4) / 100;
+  const fiNumber = wRate > 0 ? Math.round(spend / wRate) : 0;
+
+  // Real month-by-month compound growth simulation with contributions — not a shortcut formula
+  const buildProjection = () => {
+    let balance = startBalance;
+    const yearly = [{ age, balance: Math.round(balance) }];
+    let fiAge = balance >= fiNumber ? age : null;
+    for (let m = 1; m <= yearsToGrow * 12; m++) {
+      balance = balance * (1 + monthlyReturn) + monthly;
+      if (fiAge === null && balance >= fiNumber) fiAge = age + m / 12;
+      if (m % 12 === 0) yearly.push({ age: age + m / 12, balance: Math.round(balance) });
+    }
+    return { yearly, finalBalance: Math.round(balance), fiAge };
+  };
+
+  const projection = buildProjection();
+  const totalContributed = startBalance + monthly * yearsToGrow * 12;
+  const totalGrowth = projection.finalBalance - totalContributed;
+  const onTrack = projection.finalBalance >= fiNumber;
+  const gap = fiNumber - projection.finalBalance;
+  const shortfallMonthly = gap > 0 && yearsToGrow > 0
+    ? Math.round(gap / (((Math.pow(1 + monthlyReturn, yearsToGrow * 12) - 1) / monthlyReturn) || 1))
+    : 0;
+
+  const maxBalance = Math.max(...projection.yearly.map(y => y.balance), fiNumber);
+  const W = 320, H = 120;
+
+  return (
+    <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)" }}>
+        <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Retirement & FIRE Calculator</p>
+        <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 16px", lineHeight: 1.5 }}>See if you're really on track — not just guessing.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "11px 12px" }}>
+            <p style={{ color: onTrack ? T.green : T.red, fontWeight: 900, fontSize: 18, margin: 0 }}>${projection.finalBalance.toLocaleString()}</p>
+            <p style={{ color: T.textSub, fontSize: 10, margin: "3px 0 0" }}>Projected at age {rAge}</p>
+          </div>
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "11px 12px" }}>
+            <p style={{ color: T.purple, fontWeight: 900, fontSize: 18, margin: 0 }}>${fiNumber.toLocaleString()}</p>
+            <p style={{ color: T.textSub, fontSize: 10, margin: "3px 0 0" }}>Your FI number</p>
+          </div>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <SectionLabel>Your Numbers</SectionLabel>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div>
+              <label style={S.label}>Current age</label>
+              <input value={currentAge} onChange={e => setCurrentAge(e.target.value)} type="number" style={S.input} />
+            </div>
+            <div>
+              <label style={S.label}>Retirement age</label>
+              <input value={retireAge} onChange={e => setRetireAge(e.target.value)} type="number" style={S.input} />
+            </div>
+          </div>
+          <div>
+            <label style={S.label}>Current retirement savings ($)</label>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={currentSavings} onChange={e => setCurrentSavings(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+            </div>
+            {retireGoal && <p style={{ color: T.textSub, fontSize: 11, margin: "5px 0 0" }}>Pre-filled from your "{retireGoal.name}" goal</p>}
+          </div>
+          <div>
+            <label style={S.label}>Monthly contribution ($)</label>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={monthlyContribution} onChange={e => setMonthlyContribution(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+            </div>
+            {realSavingsCapacity > 0 && <p style={{ color: T.textSub, fontSize: 11, margin: "5px 0 0" }}>Your real monthly savings capacity: ${Math.round(realSavingsCapacity).toLocaleString()}</p>}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div>
+              <label style={S.label}>Expected return (%/yr)</label>
+              <input value={returnRate} onChange={e => setReturnRate(e.target.value)} type="number" step="0.5" style={S.input} />
+            </div>
+            <div>
+              <label style={S.label}>Safe withdrawal (%/yr)</label>
+              <input value={withdrawalRate} onChange={e => setWithdrawalRate(e.target.value)} type="number" step="0.5" style={S.input} />
+            </div>
+          </div>
+          <div>
+            <label style={S.label}>Desired annual spending in retirement ($)</label>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={desiredAnnualSpend} onChange={e => setDesiredAnnualSpend(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ ...S.card, background: `${onTrack ? T.green : T.red}0a`, border: `1px solid ${onTrack ? T.green : T.red}30` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <SectionLabel>Are You On Track?</SectionLabel>
+          <span style={{ background: `${onTrack ? T.green : T.red}18`, color: onTrack ? T.green : T.red, border: `1px solid ${onTrack ? T.green : T.red}40`, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, fontFamily: "'Inter',sans-serif" }}>{onTrack ? "On track" : "Behind"}</span>
+        </div>
+        {onTrack ? (
+          <p style={{ color: T.textMid, fontSize: 12, margin: 0, lineHeight: 1.6 }}>
+            At this pace, you're projected to have <strong style={{ color: T.green }}>${projection.finalBalance.toLocaleString()}</strong> by age {rAge} — enough to cover ${spend.toLocaleString()}/yr using a {withdrawalRate}% withdrawal rate.
+            {projection.fiAge && projection.fiAge < rAge && <> You could actually reach financial independence around age <strong style={{ color: T.gold }}>{Math.round(projection.fiAge)}</strong>, before your target retirement age.</>}
+          </p>
+        ) : (
+          <p style={{ color: T.textMid, fontSize: 12, margin: 0, lineHeight: 1.6 }}>
+            You're projected to be <strong style={{ color: T.red }}>${Math.abs(gap).toLocaleString()} short</strong> of your FI number by age {rAge}. Adding about <strong style={{ color: T.gold }}>${shortfallMonthly.toLocaleString()}/mo</strong> more would close the gap at your current return assumption.
+          </p>
+        )}
+      </div>
+
+      <div style={S.card}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+          <SectionLabel>Growth Projection</SectionLabel>
+          <p style={{ color: T.textSub, fontSize: 11, margin: 0 }}>${totalGrowth.toLocaleString()} from growth</p>
+        </div>
+        <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="retireGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={T.purple} stopOpacity="0.3" />
+              <stop offset="100%" stopColor={T.purple} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {(() => {
+            const pts = projection.yearly.map((y, i) => `${(i / (projection.yearly.length - 1 || 1)) * W},${H - (y.balance / (maxBalance || 1)) * H}`).join(" ");
+            const fiLineY = H - (fiNumber / (maxBalance || 1)) * H;
+            return (
+              <>
+                <line x1={0} y1={fiLineY} x2={W} y2={fiLineY} stroke={T.gold} strokeWidth="1.5" strokeDasharray="4,4" />
+                <polygon points={`0,${H} ${pts} ${W},${H}`} fill="url(#retireGrad)" />
+                <polyline points={pts} fill="none" stroke={T.purple} strokeWidth="2.5" strokeLinecap="round" />
+              </>
+            );
+          })()}
+        </svg>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+          <span style={{ color: T.textSub, fontSize: 10 }}>Age {age}</span>
+          <span style={{ color: T.gold, fontSize: 10 }}>- - - FI number (${fiNumber.toLocaleString()})</span>
+          <span style={{ color: T.textSub, fontSize: 10 }}>Age {rAge}</span>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <SectionLabel>Where the Money Comes From</SectionLabel>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <p style={{ color: T.textMid, fontSize: 13, margin: 0 }}>You contribute</p>
+          <p style={{ color: T.text, fontWeight: 700, fontSize: 13, margin: 0 }}>${Math.round(totalContributed).toLocaleString()}</p>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <p style={{ color: T.textMid, fontSize: 13, margin: 0 }}>Growth earns</p>
+          <p style={{ color: T.green, fontWeight: 700, fontSize: 13, margin: 0 }}>${Math.round(totalGrowth).toLocaleString()}</p>
+        </div>
+        <p style={{ color: T.textSub, fontSize: 11, margin: "10px 0 0", lineHeight: 1.6 }}>This is a simple projection using a constant assumed return. Real markets are volatile year to year — this is not a guarantee.</p>
+      </div>
+    </div>
+  );
+}
+
 function MortgageCalculator({ profile, goals = [], debts = [] }) {
   const houseGoal = goals.find(g => g.name.toLowerCase().includes("house") || g.name.toLowerCase().includes("down payment"));
   const [homePrice, setHomePrice] = useState(String(houseGoal?.target || 350000));
@@ -11862,6 +12042,7 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
     { id: "tax",       icon: "barChart",   label: "Tax"       },
     { id: "emergency", icon: "shield",     label: "Emergency" },
     { id: "mortgage",  icon: "building",   label: "Mortgage"  },
+    { id: "retirement",icon: "award",      label: "Retirement"},
     { id: "joneses",   icon: "users",      label: "Joneses", hidden: true   },
     { id: "referral",  icon: "send",       label: "Referral", hidden: true  },
     { id: "school",    icon: "award",      label: "School"    },
@@ -12285,6 +12466,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "tax"       && <div style={{ paddingTop: 16 }}><TaxEstimator profile={profile} hustles={dbHustles} /></div>}
       {tab === "emergency" && <div style={{ paddingTop: 16 }}><EmergencyFundCalc profile={profile} goals={goals} onNavigate={setTab} /></div>}
       {tab === "mortgage" && <div style={{ paddingTop: 16 }}><MortgageCalculator profile={profile} goals={goals} debts={dbDebts} /></div>}
+      {tab === "retirement" && <div style={{ paddingTop: 16 }}><RetirementCalculator profile={profile} goals={goals} /></div>}
       {tab === "joneses"   && <div style={{ paddingTop: 16 }}><JonesesComparison profile={profile} goals={goals} debts={dbDebts} netWorth={dbAssets.reduce((a, x) => a + (Number(x.amount) || 0), 0) + goals.reduce((a, g) => a + g.saved, 0) - dbLiabs.reduce((a, x) => a + (Number(x.amount) || 0), 0)} /></div>}
       {tab === "referral"  && <div style={{ paddingTop: 16 }}><ReferralSystem profile={profile} /></div>}
       {tab === "networth"  && <div style={{ paddingTop: 16 }}><NetWorthTab goals={goals} profile={profile} initialAssets={dbAssets} initialLiabs={dbLiabs} onPersistAsset={persistAsset} onDeleteAsset={removeAssetDb} onPersistLiab={persistLiab} onDeleteLiab={removeLiabDb} snapshots={dbSnapshots} onSnapshot={persistSnapshot} /></div>}
