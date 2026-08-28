@@ -3786,7 +3786,7 @@ function ProfileTab({ goals, userName, isPro, onUpgrade, onSignOut, profile = nu
         <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 12px", lineHeight: 1.5 }}>We do not sell your data, show ads, or connect to your bank. Your numbers stay yours.</p>
         {[
           { k: "about",   icon: "target", color: T.purple, t: "Our Purpose", s: "Why Freedom Funds exists" },
-          { k: "privacy", icon: "lock",   color: T.green,  t: "Privacy Policy", s: "What we collect and what we never do" },
+          { k: "privacy", icon: "lock",   color: T.green,  t: "Privacy Policy", s: "What we collect and how we protect it" },
           { k: "terms",   icon: "book",   color: T.blue,   t: "Terms of Service", s: "What this app is, and what it is not" },
         ].map((r, i) => (
           <button key={r.k} onClick={() => setLegal(r.k)} style={{ width: "100%", background: "none", border: "none", borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.06)", padding: "12px 2px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", fontFamily: "'Inter',sans-serif" }}>
@@ -4407,7 +4407,8 @@ const LEGAL_TEXT = {
     updated: "Last updated July 2026",
     sections: [
       { h: "What we collect", p: "Only what you type in: your name, email, the income and expense figures you enter, your goals, bills, assets, debts, and your School Mode progress. We do not collect your location, your contacts, or your browsing activity." },
-      { h: "What we do NOT do", p: "We do not sell your data. We do not share it with advertisers. We do not show ads. We do not connect to your bank accounts, and we never ask for bank logins, card numbers, or your Social Security number." },
+      { h: "Bank connections (planned feature)", p: "We do not connect to your bank accounts today. In the future, you may be able to link a bank account so the app can calculate your spending automatically instead of you entering it by hand. If we build this, it will go through a secure third-party provider built for this purpose — we will never see or store your actual bank username or password ourselves. This will always be optional, and we will tell you clearly before it's available." },
+      { h: "What we do NOT do", p: "We do not sell your data. We do not share it with advertisers. We do not show ads. We never ask for your Social Security number, and we will never store a bank password or PIN directly, even after bank-linking is available." },
       { h: "Where it lives", p: "Your data is stored with Supabase, our database provider, and protected by row-level security rules. Those rules mean your records can only be read by your own signed-in account." },
       { h: "Classrooms", p: "If you join a class with a teacher code, that teacher can see your first name, your lesson progress, and your XP. Teachers cannot see your income, goals, bills, or any financial figures. Ever." },
       { h: "Your control", p: "You can edit or delete any entry at any time. You can erase everything from the Delete My Data button in your profile. Deleted data cannot be recovered." },
