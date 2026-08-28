@@ -11014,7 +11014,7 @@ export default function App() {
     await fetch(`${SUPABASE_URL}/rest/v1/check_ins`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token || SUPABASE_KEY}`, "Prefer": "return=minimal" },
-      body: JSON.stringify({ user_id: authUser.id, amount: entry.amount, category: entry.category, note: entry.note }),
+      body: JSON.stringify({ user_id: authUser.id, amount: entry.amount, category: entry.category, note: entry.note, checked_in_at: entry.date ? `${entry.date}T00:00:00` : new Date().toISOString() }),
     });
   };
 
@@ -11737,7 +11737,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       <DepositModal goal={depositGoal} onClose={() => setDepositGoal(null)} onConfirm={handleGoalDeposit} />
       {privacyGoal && <PrivacyModal goal={privacyGoal} onClose={() => setPrivacyGoal(null)} onSave={handlePrivacySave} />}
       {editGoal && <EditGoalModal goal={editGoal} onClose={() => setEditGoal(null)} onSave={handleGoalSave} onDelete={handleGoalDelete} />}
-      {showCheckIn && <DailyCheckIn profile={profile} goals={goals} onClose={() => setShowCheckIn(false)} onLog={async entry => { const newEntry = { ...entry, date: new Date().toISOString().split("T")[0] }; setCheckInLog(p => [...p, newEntry]); setStreak(s => s + 1); await logCheckIn(entry); }} />}
+      {showCheckIn && <DailyCheckIn profile={profile} goals={goals} onClose={() => setShowCheckIn(false)} onLog={async entry => { const newEntry = { ...entry, date: new Date().toISOString().split("T")[0] }; setCheckInLog(p => [...p, newEntry]); setStreak(s => s + 1); await logCheckIn(newEntry); }} />}
       {showNotifications && <NotificationCenter notifications={notifications} onClose={() => setShowNotifications(false)} onRead={markRead} onReadAll={markAllRead} onNavigate={t => setTab(t)} onOpenSettings={() => { setShowNotifications(false); setShowNotifSettings(true); }} />}
       {showNotifSettings && <NotificationSettings onClose={() => setShowNotifSettings(false)} initialSettings={dbNotifSettings?.settings} initialDnd={dbNotifSettings?.dnd || false} onSave={persistNotifSettings} />}
     </div>
