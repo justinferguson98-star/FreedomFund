@@ -397,7 +397,7 @@ function AuthScreen({ onAuth }) {
           {/* CTAs */}
           <div className="af-fade-3" style={{ paddingBottom: 44, display: "flex", flexDirection: "column", gap: 12 }}>
             <button onClick={() => setMode("signup")} style={{ background: GRAD.purple, border: "none", borderRadius: 999, padding: "17px 0", cursor: "pointer", color: "#fff", fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: 16, boxShadow: "0 6px 26px rgba(0,0,0,0.25)" }}>
-              Get Started Free
+              Start Free Trial
             </button>
             <button onClick={() => setMode("login")} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 999, padding: "16px 0", cursor: "pointer", color: T.text, fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 15 }}>
               I already have an account
@@ -405,7 +405,7 @@ function AuthScreen({ onAuth }) {
             <button onClick={() => setShowAbout(true)} style={{ background: "none", border: "none", cursor: "pointer", color: T.textMid, fontSize: 13, fontFamily: "'Inter',sans-serif", fontWeight: 600, padding: "14px 0 0", width: "100%", textAlign: "center" }}>
               Why we built this
             </button>
-            <p style={{ color: T.textSub, fontSize: 11, textAlign: "center", margin: "6px 0 0" }}>Free forever &middot; No credit card required</p>
+            <p style={{ color: T.textSub, fontSize: 11, textAlign: "center", margin: "6px 0 0" }}>60-day free trial &middot; No credit card required</p>
           </div>
         </div>
       </div>
@@ -621,39 +621,39 @@ const Icon = ({ name, size = 18, color = "currentColor", strokeWidth = 1.6, styl
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 const T = {
-  bg:       "#0F0E2A",
-  surface:  "#13123A",
-  card:     "#1A1940",
-  border:   "rgba(255,255,255,0.08)",
+  bg:       "#000000",
+  surface:  "#2C2C2E",
+  card:     "#1C1C1E",
+  border:   "rgba(255,255,255,0.07)",
   borderHi: "rgba(255,255,255,0.12)",
-  accent:   "#7C5CFC",  accentLo: "rgba(124,92,252,0.15)",
-  green:    "#00D2A0",  greenLo:  "rgba(0,210,160,0.13)",
-  red:      "#FF5A6E",  redLo:    "rgba(255,90,110,0.12)",
-  gold:     "#F5A623",  goldLo:   "rgba(245,166,35,0.13)",
-  purple:   "#9B6BFF",  purpleLo: "rgba(155,107,255,0.15)",
-  blue:     "#4FACFE",  blueLo:   "rgba(79,172,254,0.13)",
-  orange:   "#FF6B35",  orangeLo: "rgba(255,107,53,0.13)",
-  teal:     "#00E5CC",  tealLo:   "rgba(0,229,204,0.12)",
-  pink:     "#FF4FA1",  pinkLo:   "rgba(255,79,161,0.12)",
+  accent:   "#8280EC",  accentLo: "rgba(130,128,236,0.16)",
+  green:    "#30D158",  greenLo:  "rgba(48,209,88,0.14)",
+  red:      "#FF453A",  redLo:    "rgba(255,69,58,0.13)",
+  gold:     "#FFD60A",  goldLo:   "rgba(255,214,10,0.14)",
+  purple:   "#BF5AF2",  purpleLo: "rgba(191,90,242,0.15)",
+  blue:     "#0A84FF",  blueLo:   "rgba(10,132,255,0.14)",
+  orange:   "#FF9F0A",  orangeLo: "rgba(255,159,10,0.14)",
+  teal:     "#40C8E0",  tealLo:   "rgba(64,200,224,0.13)",
+  pink:     "#FF375F",  pinkLo:   "rgba(255,55,95,0.13)",
   text:     "#FFFFFF",
-  textSub:  "#9490C4",
-  textMid:  "#ACA8D6",
+  textSub:  "#98989D",
+  textMid:  "#C7C7CC",
 };
 
 // ── Gradient presets ──────────────────────────────────────────────────────────
 const GRAD = {
-  purple: "linear-gradient(135deg, #7C5CFC 0%, #B06BFF 100%)",
-  orange: "linear-gradient(135deg, #FF6B35 0%, #FF4FA1 100%)",
-  green:  "linear-gradient(135deg, #00D2A0 0%, #00E5CC 100%)",
-  blue:   "linear-gradient(135deg, #4FACFE 0%, #7C5CFC 100%)",
-  teal:   "linear-gradient(135deg, #00E5CC 0%, #4FACFE 100%)",
-  gold:   "linear-gradient(135deg, #F5A623 0%, #FF6B35 100%)",
-  card:   "linear-gradient(145deg, #1E1C4A 0%, #141330 100%)",
-  dark:   "linear-gradient(145deg, #13123A 0%, #0F0E2A 100%)",
+  purple: "linear-gradient(135deg, #8280EC 0%, #BF5AF2 100%)",
+  orange: "linear-gradient(135deg, #FF9F0A 0%, #FF375F 100%)",
+  green:  "linear-gradient(135deg, #30D158 0%, #40C8E0 100%)",
+  blue:   "linear-gradient(135deg, #0A84FF 0%, #8280EC 100%)",
+  teal:   "linear-gradient(135deg, #40C8E0 0%, #0A84FF 100%)",
+  gold:   "linear-gradient(135deg, #FFD60A 0%, #FF9F0A 100%)",
+  card:   "linear-gradient(145deg, #232325 0%, #1C1C1E 100%)",
+  dark:   "linear-gradient(145deg, #1C1C1E 0%, #000000 100%)",
 };
 
-// ── Chart colors — professional forest palette ────────────────────────────────
-const CHART_COLORS = ["#FF6B35", "#9B6BFF", "#00D2A0", "#4FACFE", "#FF4FA1", "#F5A623"];
+// ── Chart colors — iOS system palette ────────────────────────────────
+const CHART_COLORS = ["#FF9F0A", "#8280EC", "#30D158", "#0A84FF", "#FF375F", "#FFD60A"];
 
 const S = {
   input: {
@@ -684,10 +684,9 @@ const S = {
     fontFamily: "'Inter',sans-serif", fontWeight: 500, fontSize: 14, cursor: "pointer",
   },
   card: {
-    background: GRAD.card,
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: T.card,
+    border: `1px solid ${T.border}`,
     borderRadius: 18,
-    boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
     padding: 16,
   },
   tag: (color) => ({
@@ -1520,7 +1519,7 @@ function Onboarding({ onComplete }) {
       { name: "HBO Max",         icon: "▶", color: "#5822B4", defaultAmt: 15.99 },
       { name: "YouTube Premium", icon: "▶", color: "#FF0000", defaultAmt: 13.99 },
       { name: "Amazon Prime",    icon: "◉", color: "#00A8E0", defaultAmt: 14.99 },
-      { name: "Gym / Fitness",   icon: "◈", color: "#F5A623", defaultAmt: 40.00 },
+      { name: "Gym / Fitness",   icon: "◈", color: "#FFD60A", defaultAmt: 40.00 },
       { name: "Apple iCloud",    icon: "☁", color: "#999999", defaultAmt: 2.99  },
       { name: "Google One",      icon: "◉", color: "#4285F4", defaultAmt: 2.99  },
       { name: "Microsoft 365",   icon: "◆", color: "#D83B01", defaultAmt: 9.99  },
@@ -2475,11 +2474,11 @@ function EditGoalModal({ goal, onClose, onSave, onDelete }) {
 
 // ── Goal Card ─────────────────────────────────────────────────────────────────
 const GOAL_GRADIENTS = [
-  "linear-gradient(135deg, #4FACFE 0%, #7B6EF6 100%)",
-  "linear-gradient(135deg, #7B6EF6 0%, #00D2A0 100%)",
-  "linear-gradient(135deg, #FF7849 0%, #FF4FA1 100%)",
-  "linear-gradient(135deg, #1DD9A0 0%, #4FACFE 100%)",
-  "linear-gradient(135deg, #F5A623 0%, #FF7849 100%)",
+  "linear-gradient(135deg, #0A84FF 0%, #7B6EF6 100%)",
+  "linear-gradient(135deg, #7B6EF6 0%, #30D158 100%)",
+  "linear-gradient(135deg, #FF7849 0%, #FF375F 100%)",
+  "linear-gradient(135deg, #1DD9A0 0%, #0A84FF 100%)",
+  "linear-gradient(135deg, #FFD60A 0%, #FF7849 100%)",
 ];
 
 function GoalCard({ goal, onDeposit, onWithdraw, onPrivacy, onEdit, idx = 0 }) {
@@ -3283,6 +3282,23 @@ function InvestTab({ initialHoldings = [], onPersistHolding = () => {}, onDelete
 }
 
 // ── Pro Upgrade ───────────────────────────────────────────────────────────────
+// ── Trial Expired — blocks the app until upgrade, once the free trial ends ──
+function TrialExpiredScreen({ onUpgrade, onSignOut }) {
+  return (
+    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 28, textAlign: "center" }}>
+      <div style={{ width: 64, height: 64, borderRadius: 18, background: T.accentLo, border: `1px solid ${T.accent}40`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+        <Icon name="lock" size={28} color={T.accent} />
+      </div>
+      <h1 style={{ color: T.text, fontSize: 22, fontWeight: 800, margin: "0 0 8px" }}>Your free trial has ended</h1>
+      <p style={{ color: T.textSub, fontSize: 14, margin: "0 0 28px", lineHeight: 1.6, maxWidth: 320 }}>
+        Your goals, budget, and progress are all saved and waiting for you. Subscribe to keep going.
+      </p>
+      <button onClick={onUpgrade} style={{ ...S.primaryBtn(), width: "100%", maxWidth: 320, marginBottom: 12 }}>See Plans</button>
+      <button onClick={onSignOut} style={{ background: "none", border: "none", color: T.textSub, fontSize: 13, cursor: "pointer", fontFamily: "'Inter',sans-serif" }}>Sign Out</button>
+    </div>
+  );
+}
+
 function ProScreen({ onClose, onUpgrade, isPro }) {
   const [plan, setPlan] = useState("yearly");
   const pricing = {
@@ -3291,13 +3307,6 @@ function ProScreen({ onClose, onUpgrade, isPro }) {
   };
   const sel = pricing[plan];
   const features = ["Unlimited savings goals", "Advanced savings schedule", "Full community participation", "Complete budget tracker", "PDF progress reports", "Goal streak tracking", "Priority support", "Early feature access"];
-  const compare = [
-    { text: "Up to 3 savings goals", free: true }, { text: "Basic breakdown plan", free: true },
-    { text: "Community feed (read-only)", free: true }, { text: "Financial tips", free: true },
-    { text: "Unlimited goals", free: false }, { text: "Advanced schedule", free: false },
-    { text: "Full community + badges", free: false }, { text: "Budget tracker", free: false },
-  ];
-
   if (isPro) return (
     <div style={{ minHeight: "100vh", background: T.bg, padding: "52px 20px 40px", maxWidth: 420, margin: "0 auto" }}>
       <button onClick={onClose} style={{ background: "none", border: "none", color: T.textSub, cursor: "pointer", marginBottom: 24, display: "flex", alignItems: "center", gap: 6, padding: 0 }}>
@@ -3372,19 +3381,21 @@ function ProScreen({ onClose, onUpgrade, isPro }) {
             </div>
           ))}
         </div>
-        <div style={{ ...S.card, overflow: "hidden" }}>
-          <SectionLabel>Free vs Pro</SectionLabel>
-          {compare.map((f, i) => (
-            <div key={f.text} style={{ display: "grid", gridTemplateColumns: "1fr 40px 40px", alignItems: "center", padding: "8px 0", borderBottom: i < compare.length - 1 ? `1px solid ${T.border}` : "none" }}>
-              <span style={{ color: T.textMid, fontSize: 12 }}>{f.text}</span>
-              <div style={{ textAlign: "center" }}><Icon name={f.free ? "check" : "x"} size={13} color={f.free ? T.green : T.red} /></div>
-              <div style={{ textAlign: "center" }}><Icon name="check" size={13} color={T.gold} /></div>
+        <div style={S.card}>
+          <SectionLabel>How Your Trial Works</SectionLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div style={{ width: 24, height: 24, borderRadius: "50%", background: T.accentLo, border: `1px solid ${T.accent}50`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                <span style={{ color: T.accent, fontSize: 11, fontWeight: 800 }}>1</span>
+              </div>
+              <p style={{ color: T.textMid, fontSize: 13, margin: 0, lineHeight: 1.6 }}>Full access to every feature for <strong style={{ color: T.text }}>60 days</strong> — unlimited goals, the complete budget tracker, and everything else. Nothing is held back during the trial.</p>
             </div>
-          ))}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 40px 40px", paddingTop: 10 }}>
-            <span />
-            <p style={{ color: T.textSub, fontSize: 10, textAlign: "center", margin: 0, fontWeight: 700 }}>FREE</p>
-            <p style={{ color: T.gold, fontSize: 10, textAlign: "center", margin: 0, fontWeight: 700 }}>PRO</p>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div style={{ width: 24, height: 24, borderRadius: "50%", background: T.goldLo, border: `1px solid ${T.gold}50`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                <span style={{ color: T.gold, fontSize: 11, fontWeight: 800 }}>2</span>
+              </div>
+              <p style={{ color: T.textMid, fontSize: 13, margin: 0, lineHeight: 1.6 }}>When the trial ends, a subscription is required to keep using Freedom Funds. Your data is always saved — nothing is deleted.</p>
+            </div>
           </div>
         </div>
         <div style={{ background: T.accentLo, border: `1px solid ${T.accent}30`, borderRadius: 10, padding: 14 }}>
@@ -4448,10 +4459,10 @@ function BudgetWheel({ profile }) {
   const givePct  = Math.max(0, leftPct - savePct) || (hasData ? 0 : 10);
 
   const slices = [
-    { label: "Needs",   pct: needsPct, target: 50, color: "#F5A623", hint: "Housing, groceries, utilities, transport, insurance, minimum debt payments" },
-    { label: "Wants",   pct: wantsPct, target: 20, color: "#FF6B35", hint: "Dining out, entertainment, shopping, vacations, hobbies" },
-    { label: "Save & Invest", pct: savePct, target: 20, color: "#00D2A0", hint: "Emergency fund, retirement, investments, long-term goals" },
-    { label: "Give & Protect", pct: givePct, target: 10, color: "#9B6BFF", hint: "Giving, donations, life and health insurance, emergency prep" },
+    { label: "Needs",   pct: needsPct, target: 50, color: "#FFD60A", hint: "Housing, groceries, utilities, transport, insurance, minimum debt payments" },
+    { label: "Wants",   pct: wantsPct, target: 20, color: "#FF9F0A", hint: "Dining out, entertainment, shopping, vacations, hobbies" },
+    { label: "Save & Invest", pct: savePct, target: 20, color: "#30D158", hint: "Emergency fund, retirement, investments, long-term goals" },
+    { label: "Give & Protect", pct: givePct, target: 10, color: "#BF5AF2", hint: "Giving, donations, life and health insurance, emergency prep" },
   ];
 
   let offset = 25; // start at 12 o clock
@@ -4649,15 +4660,15 @@ const ABOUT_STATS = [
 ];
 
 const ABOUT_PRINCIPLES = [
-  { icon: "target", color: "#9B6BFF", h: "Freedom is the metric, not budgets",
+  { icon: "target", color: "#BF5AF2", h: "Freedom is the metric, not budgets",
     p: "Most apps grade you on last month. We measure the distance to the day work becomes optional. Every dollar saved and every debt cleared shortens that distance, and we show you by how much." },
-  { icon: "zap", color: "#00D2A0", h: "Clarity beats complexity",
+  { icon: "zap", color: "#30D158", h: "Clarity beats complexity",
     p: "Financial advice is often written to sound impressive rather than to be understood. We use plain words, real numbers, and no jargon. If a screen does not help you decide something, it does not belong in the app." },
-  { icon: "book", color: "#4FACFE", h: "Teach, do not just track",
+  { icon: "book", color: "#0A84FF", h: "Teach, do not just track",
     p: "Tracking without understanding produces guilt. Understanding produces change. Every tool in this app is paired with the reasoning behind it, so you learn the principle and not just the number." },
-  { icon: "shield", color: "#F5A623", h: "Honesty over engagement",
+  { icon: "shield", color: "#FFD60A", h: "Honesty over engagement",
     p: "We do not manufacture urgency, invent fake social proof, or dress up estimates as certainties. When a number is an estimate, we say so. When something is outside our knowledge, we say that too." },
-  { icon: "users", color: "#FF6B35", h: "Beginners are the point",
+  { icon: "users", color: "#FF9F0A", h: "Beginners are the point",
     p: "This app assumes you were never taught this. There is no shame in starting at zero, and nothing here is written to make an expert feel clever at a beginner expense." },
 ];
 
@@ -5842,18 +5853,18 @@ function WhatIfCalculator({ goals, profile }) {
 // ── Notification System ───────────────────────────────────────────────────────
 
 const NOTIF_TYPES = {
-  bill_due:        { icon: "calendar",   color: "#FF6B35", label: "Bill Due"           },
-  bill_overdue:    { icon: "calendar",   color: "#FF5A6E", label: "Bill Overdue"       },
-  goal_milestone:  { icon: "award",      color: "#00D2A0", label: "Goal Milestone"     },
-  goal_complete:   { icon: "check",      color: "#00D2A0", label: "Goal Complete"      },
-  streak_risk:     { icon: "fire",       color: "#F5A623", label: "Streak at Risk"     },
-  streak_milestone:{ icon: "fire",       color: "#F5A623", label: "Streak Milestone"   },
-  overspend:       { icon: "zap",        color: "#FF5A6E", label: "Overspending"       },
-  payday:          { icon: "dollarSign", color: "#00D2A0", label: "Payday Reminder"    },
-  weekly_summary:  { icon: "barChart",   color: "#4FACFE", label: "Weekly Summary"     },
-  savings_tip:     { icon: "zap",        color: "#7C5CFC", label: "Savings Insight"    },
-  checkin_reminder:{ icon: "bell",       color: "#00D2A0", label: "Daily Reminder"     },
-  tax_reminder:    { icon: "barChart",   color: "#F5A623", label: "Tax Reminder"       },
+  bill_due:        { icon: "calendar",   color: "#FF9F0A", label: "Bill Due"           },
+  bill_overdue:    { icon: "calendar",   color: "#FF453A", label: "Bill Overdue"       },
+  goal_milestone:  { icon: "award",      color: "#30D158", label: "Goal Milestone"     },
+  goal_complete:   { icon: "check",      color: "#30D158", label: "Goal Complete"      },
+  streak_risk:     { icon: "fire",       color: "#FFD60A", label: "Streak at Risk"     },
+  streak_milestone:{ icon: "fire",       color: "#FFD60A", label: "Streak Milestone"   },
+  overspend:       { icon: "zap",        color: "#FF453A", label: "Overspending"       },
+  payday:          { icon: "dollarSign", color: "#30D158", label: "Payday Reminder"    },
+  weekly_summary:  { icon: "barChart",   color: "#0A84FF", label: "Weekly Summary"     },
+  savings_tip:     { icon: "zap",        color: "#8280EC", label: "Savings Insight"    },
+  checkin_reminder:{ icon: "bell",       color: "#30D158", label: "Daily Reminder"     },
+  tax_reminder:    { icon: "barChart",   color: "#FFD60A", label: "Tax Reminder"       },
 };
 
 function generateNotifications(goals, bills = [], streak = 0, checkInLog = [], profile = null, settings = null) {
@@ -6233,13 +6244,13 @@ function NotificationSettings({ onClose, initialSettings = null, initialDnd = fa
 
 // ── Financial Calendar ────────────────────────────────────────────────────────
 const CAL_EVENT_TYPES = {
-  bill:         { color: "#FF6B35", icon: "calendar",   label: "Bill Due"        },
-  bill_auto:    { color: "#4FACFE", icon: "repeat",     label: "Autopay"         },
-  payday:       { color: "#00D2A0", icon: "dollarSign", label: "Payday"          },
-  goal_deposit: { color: "#00D2A0", icon: "target",     label: "Goal Deposit"    },
-  subscription: { color: "#7C5CFC", icon: "repeat",     label: "Subscription"    },
-  checkin:      { color: "#F5A623", icon: "check",      label: "Check-In"        },
-  tax:          { color: "#FF5A6E", icon: "barChart",   label: "Tax Due"         },
+  bill:         { color: "#FF9F0A", icon: "calendar",   label: "Bill Due"        },
+  bill_auto:    { color: "#0A84FF", icon: "repeat",     label: "Autopay"         },
+  payday:       { color: "#30D158", icon: "dollarSign", label: "Payday"          },
+  goal_deposit: { color: "#30D158", icon: "target",     label: "Goal Deposit"    },
+  subscription: { color: "#8280EC", icon: "repeat",     label: "Subscription"    },
+  checkin:      { color: "#FFD60A", icon: "check",      label: "Check-In"        },
+  tax:          { color: "#FF453A", icon: "barChart",   label: "Tax Due"         },
 };
 
 // ── Zero-Based Budget (envelope budgeting) ──────────────────────────────────
@@ -6333,7 +6344,7 @@ function ZeroBasedBudget({ profile, checkInLog = [], initialEnvelopes = [], onPe
 
   return (
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
-      <div style={{ ...S.card, background: isZeroBased ? "linear-gradient(135deg, #0A2218 0%, #0F0E2A 100%)" : "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)" }}>
+      <div style={{ ...S.card, background: isZeroBased ? "linear-gradient(135deg, #0A2218 0%, #000000 100%)" : "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)" }}>
         <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Zero-Based Budget</p>
         <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 16px", lineHeight: 1.5 }}>Give every dollar a job before you spend it.</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
@@ -6807,7 +6818,7 @@ function FinancialCalendar({ goals, bills = [], checkInLog = [], profile }) {
         </div>
       </div>
 
-      <p style={{ color: "#1A1940", fontSize: 11, textAlign: "center" }}>Calendar events are generated from your bills, goals, and payday settings. Connect your bank to see real transaction history.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>Calendar events are generated from your bills, goals, and payday settings. Connect your bank to see real transaction history.</p>
     </div>
   );
 }
@@ -6866,7 +6877,7 @@ function AnnualReview({ goals, profile, checkInLog, streak, bills = [], netWorth
   const slides = [
     {
       id: "intro",
-      bg: "linear-gradient(160deg, #141330 0%, #0F0E2A 100%)",
+      bg: "linear-gradient(160deg, #1C1C1E 0%, #000000 100%)",
       accent: T.purple,
       content: (
         <div style={{ textAlign: "center", padding: "0 24px" }}>
@@ -6883,7 +6894,7 @@ function AnnualReview({ goals, profile, checkInLog, streak, bills = [], netWorth
     },
     {
       id: "income",
-      bg: "linear-gradient(160deg, #0A2218 0%, #0F0E2A 100%)",
+      bg: "linear-gradient(160deg, #0A2218 0%, #000000 100%)",
       accent: T.green,
       content: (
         <div style={{ textAlign: "center", padding: "0 24px" }}>
@@ -6918,7 +6929,7 @@ function AnnualReview({ goals, profile, checkInLog, streak, bills = [], netWorth
     },
     {
       id: "savings",
-      bg: "linear-gradient(160deg, #141330 0%, #0F0E2A 100%)",
+      bg: "linear-gradient(160deg, #1C1C1E 0%, #000000 100%)",
       accent: T.purple,
       content: (
         <div style={{ textAlign: "center", padding: "0 24px" }}>
@@ -6947,7 +6958,7 @@ function AnnualReview({ goals, profile, checkInLog, streak, bills = [], netWorth
     },
     {
       id: "habits",
-      bg: "linear-gradient(160deg, #1A1208 0%, #0F0E2A 100%)",
+      bg: "linear-gradient(160deg, #1A1208 0%, #000000 100%)",
       accent: T.gold,
       content: (
         <div style={{ textAlign: "center", padding: "0 24px" }}>
@@ -6983,7 +6994,7 @@ function AnnualReview({ goals, profile, checkInLog, streak, bills = [], netWorth
     },
     {
       id: "spending",
-      bg: "linear-gradient(160deg, #1A0A08 0%, #0F0E2A 100%)",
+      bg: "linear-gradient(160deg, #1A0A08 0%, #000000 100%)",
       accent: T.orange,
       content: hasSpendingData ? (
         <div style={{ textAlign: "center", padding: "0 24px" }}>
@@ -7019,7 +7030,7 @@ function AnnualReview({ goals, profile, checkInLog, streak, bills = [], netWorth
     },
     {
       id: "networth",
-      bg: "linear-gradient(160deg, #0A1A0A 0%, #0F0E2A 100%)",
+      bg: "linear-gradient(160deg, #0A1A0A 0%, #000000 100%)",
       accent: T.green,
       content: hasNetWorthHistory ? (
         <div style={{ textAlign: "center", padding: "0 24px" }}>
@@ -7068,7 +7079,7 @@ function AnnualReview({ goals, profile, checkInLog, streak, bills = [], netWorth
     },
     {
       id: "finale",
-      bg: "linear-gradient(160deg, #141330 0%, #0A1A0A 100%)",
+      bg: "linear-gradient(160deg, #1C1C1E 0%, #0A1A0A 100%)",
       accent: T.green,
       content: (
         <div style={{ textAlign: "center", padding: "0 24px" }}>
@@ -7163,13 +7174,13 @@ function generateRecommendations(goals, profile, bills = []) {
 
   // Spending benchmarks (national averages as % of income)
   const benchmarks = {
-    dining:        { label: "Dining Out",       avg: 0.05,  current: (profile?.diningOut ? profile.diningOut * 4.33 : 380), icon: "dollarSign", color: "#FF6B35" },
-    groceries:     { label: "Groceries",        avg: 0.10,  current: profile?.groceries * 4.33 || 480, icon: "dollarSign", color: "#00D2A0" },
-    subscriptions: { label: "Subscriptions",    avg: 0.03,  current: (profile?.subscriptions ?? 210), icon: "repeat",     color: "#7C5CFC" },
-    shopping:      { label: "Shopping",         avg: 0.05,  current: (profile ? (profile.clothingMonthly || 0) + (profile.miscSpend || 0) : 340) || 340, icon: "package",    color: "#4FACFE" },
-    transport:     { label: "Transport",        avg: 0.09,  current: profile?.fuelCost || 190, icon: "send", color: "#F5A623" },
-    entertainment: { label: "Entertainment",    avg: 0.04,  current: profile?.entertainment || 120, icon: "zap", color: "#00D2A0" },
-    workLunch:     { label: "Work Lunches",     avg: 0,     current: (profile?.lunchSpend || 0) * 22, icon: "dollarSign", color: "#FF6B35" },
+    dining:        { label: "Dining Out",       avg: 0.05,  current: (profile?.diningOut ? profile.diningOut * 4.33 : 380), icon: "dollarSign", color: "#FF9F0A" },
+    groceries:     { label: "Groceries",        avg: 0.10,  current: profile?.groceries * 4.33 || 480, icon: "dollarSign", color: "#30D158" },
+    subscriptions: { label: "Subscriptions",    avg: 0.03,  current: (profile?.subscriptions ?? 210), icon: "repeat",     color: "#8280EC" },
+    shopping:      { label: "Shopping",         avg: 0.05,  current: (profile ? (profile.clothingMonthly || 0) + (profile.miscSpend || 0) : 340) || 340, icon: "package",    color: "#0A84FF" },
+    transport:     { label: "Transport",        avg: 0.09,  current: profile?.fuelCost || 190, icon: "send", color: "#FFD60A" },
+    entertainment: { label: "Entertainment",    avg: 0.04,  current: profile?.entertainment || 120, icon: "zap", color: "#30D158" },
+    workLunch:     { label: "Work Lunches",     avg: 0,     current: (profile?.lunchSpend || 0) * 22, icon: "dollarSign", color: "#FF9F0A" },
   };
 
   // Closest goal for timeline calculations
@@ -7269,7 +7280,7 @@ function generateRecommendations(goals, profile, bills = []) {
   if (!emergFund) {
     recs.push({
       id: "no-emergency-fund", priority: "urgent", category: "Emergency Fund",
-      icon: "shield", color: "#FF5A6E",
+      icon: "shield", color: "#FF453A",
       title: "You have no emergency fund goal set",
       body: `Without an emergency fund, one unexpected expense — car repair, medical bill, job loss — forces you into debt. You need ${topGoal ? "this before anything else" : "this as your first goal"}.`,
       savingsPerMonth: null,
@@ -7286,7 +7297,7 @@ function generateRecommendations(goals, profile, bills = []) {
   } else if (emergFund.saved < emergFund.target * 0.5) {
     recs.push({
       id: "emergency-fund-low", priority: "high", category: "Emergency Fund",
-      icon: "shield", color: "#FF5A6E",
+      icon: "shield", color: "#FF453A",
       title: "Emergency fund is less than halfway funded",
       body: `You have $${emergFund.saved.toLocaleString()} saved but your target is $${emergFund.target.toLocaleString()}. Until this hits 3 months of expenses, every other financial goal is at risk.`,
       savingsPerMonth: null,
@@ -7307,7 +7318,7 @@ function generateRecommendations(goals, profile, bills = []) {
   if (goalsWithoutAutoDeposit.length > 0) {
     recs.push({
       id: "no-auto-deposit", priority: "medium", category: "Automation",
-      icon: "repeat", color: "#00D2A0",
+      icon: "repeat", color: "#30D158",
       title: `${goalsWithoutAutoDeposit.length} goal${goalsWithoutAutoDeposit.length > 1 ? "s" : ""} without auto-deposit`,
       body: "Goals with auto-deposits are completed 3x faster than manual ones. Set it and forget it — your goals will grow while you sleep.",
       savingsPerMonth: null,
@@ -7326,7 +7337,7 @@ function generateRecommendations(goals, profile, bills = []) {
   // High interest debt warning
   recs.push({
     id: "high-interest-debt", priority: "high", category: "Debt Strategy",
-    icon: "wallet", color: "#FF5A6E",
+    icon: "wallet", color: "#FF453A",
     title: "Credit card debt costs more than investing earns",
     body: "Paying 21% APR on credit card debt while earning 10% in the market is a net loss of 11% per year. Every dollar of high-interest debt paid off is a guaranteed 21% return.",
     savingsPerMonth: null,
@@ -7356,17 +7367,17 @@ function SmartRecommendations({ goals, profile, bills }) {
   const totalYearlySavings  = recs.filter(r => r.yearlyImpact).reduce((a, r) => a + r.yearlyImpact, 0);
 
   const priorityConfig = {
-    urgent: { label: "Urgent",  color: "#FF5A6E", bg: "rgba(255,90,110,0.12)"  },
-    high:   { label: "High",    color: "#FF6B35", bg: "rgba(255,107,53,0.1)"   },
-    medium: { label: "Medium",  color: "#F5A623", bg: "rgba(245,166,35,0.1)"   },
-    low:    { label: "Low",     color: "#00D2A0", bg: "rgba(0,210,160,0.1)"    },
+    urgent: { label: "Urgent",  color: "#FF453A", bg: "rgba(255,90,110,0.12)"  },
+    high:   { label: "High",    color: "#FF9F0A", bg: "rgba(255,107,53,0.1)"   },
+    medium: { label: "Medium",  color: "#FFD60A", bg: "rgba(245,166,35,0.1)"   },
+    low:    { label: "Low",     color: "#30D158", bg: "rgba(0,210,160,0.1)"    },
   };
 
   return (
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
 
       {/* Header impact card */}
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)", position: "relative", overflow: "hidden" }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -30, right: -20, width: 120, height: 120, borderRadius: "50%", background: "transparent" }} />
         <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 6px" }}>Smart Recommendations</p>
         <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 16px", lineHeight: 1.5 }}>Based on your real spending — not generic advice.</p>
@@ -7470,7 +7481,7 @@ function SmartRecommendations({ goals, profile, bills }) {
         </button>
       )}
 
-      <p style={{ color: "#1A1940", fontSize: 11, textAlign: "center" }}>Recommendations are based on your profile and spending data. Connect your bank for even more personalized insights.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>Recommendations are based on your profile and spending data. Connect your bank for even more personalized insights.</p>
     </div>
   );
 }
@@ -7480,7 +7491,7 @@ function SmartRecommendations({ goals, profile, bills }) {
 const PARTNER_MOCK = {
   name: "Alex",
   avatar: "AX",
-  color: "#FF6B35",
+  color: "#FF9F0A",
   income: 3800,
   payFreq: "biweekly",
   joined: "Jan 2025",
@@ -7490,17 +7501,17 @@ const PARTNER_MOCK = {
 };
 
 const SHARED_GOALS_MOCK = [
-  { id: "s1", name: "House Down Payment", target: 40000, saved: 18400, icon: "building", color: "#4FACFE", myContrib: 9800, partnerContrib: 8600, isShared: true },
-  { id: "s2", name: "Emergency Fund",     target: 15000, saved: 7200,  icon: "shield",   color: "#00D2A0", myContrib: 4200, partnerContrib: 3000, isShared: true },
-  { id: "s3", name: "Vacation Fund",      target: 5000,  saved: 1800,  icon: "send",     color: "#F5A623", myContrib: 900,  partnerContrib: 900,  isShared: true },
+  { id: "s1", name: "House Down Payment", target: 40000, saved: 18400, icon: "building", color: "#0A84FF", myContrib: 9800, partnerContrib: 8600, isShared: true },
+  { id: "s2", name: "Emergency Fund",     target: 15000, saved: 7200,  icon: "shield",   color: "#30D158", myContrib: 4200, partnerContrib: 3000, isShared: true },
+  { id: "s3", name: "Vacation Fund",      target: 5000,  saved: 1800,  icon: "send",     color: "#FFD60A", myContrib: 900,  partnerContrib: 900,  isShared: true },
 ];
 
 const SHARED_BILLS_MOCK = [
-  { id: "sb1", name: "Rent",         amount: 2200, myShare: 0.5,  dueDay: 1,  autopay: true,  icon: "building",   color: "#4FACFE" },
-  { id: "sb2", name: "Electricity",  amount: 140,  myShare: 0.5,  dueDay: 12, autopay: false, icon: "zap",        color: "#F5A623" },
-  { id: "sb3", name: "Internet",     amount: 69,   myShare: 0.5,  dueDay: 15, autopay: true,  icon: "bell",       color: "#7C5CFC" },
-  { id: "sb4", name: "Groceries",    amount: 600,  myShare: 0.5,  dueDay: 1,  autopay: false, icon: "dollarSign", color: "#00D2A0" },
-  { id: "sb5", name: "Streaming",    amount: 45,   myShare: 0.5,  dueDay: 22, autopay: true,  icon: "repeat",     color: "#FF6B35" },
+  { id: "sb1", name: "Rent",         amount: 2200, myShare: 0.5,  dueDay: 1,  autopay: true,  icon: "building",   color: "#0A84FF" },
+  { id: "sb2", name: "Electricity",  amount: 140,  myShare: 0.5,  dueDay: 12, autopay: false, icon: "zap",        color: "#FFD60A" },
+  { id: "sb3", name: "Internet",     amount: 69,   myShare: 0.5,  dueDay: 15, autopay: true,  icon: "bell",       color: "#8280EC" },
+  { id: "sb4", name: "Groceries",    amount: 600,  myShare: 0.5,  dueDay: 1,  autopay: false, icon: "dollarSign", color: "#30D158" },
+  { id: "sb5", name: "Streaming",    amount: 45,   myShare: 0.5,  dueDay: 22, autopay: true,  icon: "repeat",     color: "#FF9F0A" },
 ];
 
 function CoupleMode({ profile, goals, myGoals }) {
@@ -7529,7 +7540,7 @@ function CoupleMode({ profile, goals, myGoals }) {
 
   if (!partnerConnected) return (
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 14, paddingBottom: 24 }}>
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)", textAlign: "center", padding: 32 }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)", textAlign: "center", padding: 32 }}>
         <div style={{ width: 72, height: 72, borderRadius: 20, background: GRAD.purple, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px", boxShadow: "0 4px 24px rgba(0,0,0,0.25)" }}>
           <Icon name="users" size={32} color="#fff" strokeWidth={1.5} />
         </div>
@@ -7583,7 +7594,7 @@ function CoupleMode({ profile, goals, myGoals }) {
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
 
       {/* Partner header */}
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)", position: "relative", overflow: "hidden" }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -30, right: -20, width: 120, height: 120, borderRadius: "50%", background: "transparent" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
           {/* My avatar */}
@@ -7931,7 +7942,7 @@ const SCORE_FACTORS = [
     status: "good",
     score: 88,
     impact: "+",
-    color: "#00D2A0",
+    color: "#30D158",
     icon: "check",
     detail: "You have made on-time payments for 11 of the last 12 months. One late payment in September is still affecting your score but will fall off in 6 months.",
     action: "Set up autopay on all bills to never miss a payment again.",
@@ -7944,7 +7955,7 @@ const SCORE_FACTORS = [
     status: "warning",
     score: 58,
     impact: "-",
-    color: "#F5A623",
+    color: "#FFD60A",
     icon: "barChart",
     detail: "You are using 42% of your available credit. The ideal is under 30%, and under 10% is best. High utilization is the fastest thing you can fix.",
     action: "Pay down your credit card balance to under $540 (30% of your $1,800 limit) to see an immediate score boost.",
@@ -7957,7 +7968,7 @@ const SCORE_FACTORS = [
     status: "fair",
     score: 62,
     impact: "-",
-    color: "#F5A623",
+    color: "#FFD60A",
     icon: "clock",
     detail: "Average age of your accounts is 3 years 4 months. Older accounts help your score. Do not close old cards even if you do not use them.",
     action: "Keep your oldest credit card open and make a small purchase on it once every 6 months to keep it active.",
@@ -7970,7 +7981,7 @@ const SCORE_FACTORS = [
     status: "fair",
     score: 55,
     impact: "-",
-    color: "#4FACFE",
+    color: "#0A84FF",
     icon: "repeat",
     detail: "You have credit cards but no installment loans on your record. A mix of revolving and installment credit is viewed positively.",
     action: "A small personal loan or auto loan (if needed anyway) would diversify your credit mix. Do not take debt just for this.",
@@ -7983,7 +7994,7 @@ const SCORE_FACTORS = [
     status: "good",
     score: 82,
     impact: "+",
-    color: "#00D2A0",
+    color: "#30D158",
     icon: "zap",
     detail: "You have had 1 hard inquiry in the last 12 months from a car loan application. Hard inquiries fall off after 2 years and stop affecting your score after 12 months.",
     action: "Avoid applying for new credit for at least 6 more months.",
@@ -7992,11 +8003,11 @@ const SCORE_FACTORS = [
 ];
 
 const SCORE_RANGES = [
-  { label: "Poor",      min: 300, max: 579, color: "#FF5A6E" },
-  { label: "Fair",      min: 580, max: 669, color: "#FF6B35" },
-  { label: "Good",      min: 670, max: 739, color: "#F5A623" },
-  { label: "Very Good", min: 740, max: 799, color: "#00D2A0" },
-  { label: "Excellent", min: 800, max: 850, color: "#4FACFE" },
+  { label: "Poor",      min: 300, max: 579, color: "#FF453A" },
+  { label: "Fair",      min: 580, max: 669, color: "#FF9F0A" },
+  { label: "Good",      min: 670, max: 739, color: "#FFD60A" },
+  { label: "Very Good", min: 740, max: 799, color: "#30D158" },
+  { label: "Excellent", min: 800, max: 850, color: "#0A84FF" },
 ];
 
 function CreditScoreTracker() {
@@ -8038,7 +8049,7 @@ function CreditScoreTracker() {
 
   if (!connected) return (
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 14, paddingBottom: 24 }}>
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)", textAlign: "center", padding: 32 }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)", textAlign: "center", padding: 32 }}>
         <div style={{ width: 72, height: 72, borderRadius: 20, background: GRAD.purple, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px", boxShadow: "0 4px 24px rgba(0,0,0,0.25)" }}>
           <Icon name="shield" size={32} color="#fff" strokeWidth={1.5} />
         </div>
@@ -8054,7 +8065,7 @@ function CreditScoreTracker() {
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
 
       {/* Score hero card */}
-      <div style={{ ...S.card, background: "linear-gradient(145deg, #141330 0%, #0F0E2A 100%)", position: "relative", overflow: "hidden" }}>
+      <div style={{ ...S.card, background: "linear-gradient(145deg, #1C1C1E 0%, #000000 100%)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%", background: "transparent" }} />
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
@@ -8210,7 +8221,7 @@ function CreditScoreTracker() {
       </div>
 
       {/* Mortgage impact calculator */}
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #0A1A2A 0%, #141330 100%)" }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #0A1A2A 0%, #1C1C1E 100%)" }}>
         <SectionLabel>Real Dollar Impact</SectionLabel>
         <p style={{ color: T.textMid, fontSize: 13, margin: "0 0 16px", lineHeight: 1.6 }}>Here is what improving your credit score from <strong style={{ color: scoreColor }}>{currentScore}</strong> to <strong style={{ color: T.green }}>{currentScore + totalPotentialGain}</strong> would save you on a $300,000 mortgage:</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
@@ -8255,7 +8266,7 @@ function CreditScoreTracker() {
           ))}
       </div>
 
-      <p style={{ color: "#1A1940", fontSize: 11, textAlign: "center" }}>Score data via Experian. Checking your own score is a soft inquiry and never affects your credit. Updated monthly.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>Score data via Experian. Checking your own score is a soft inquiry and never affects your credit. Updated monthly.</p>
     </div>
   );
 }
@@ -8267,7 +8278,7 @@ const INVEST_LEVELS = [
     title: "Why You Must Invest",
     subtitle: "The cost of doing nothing",
     icon: "zap",
-    color: "#FF6B35",
+    color: "#FF9F0A",
     unlocked: true,
     lessons: [
       {
@@ -8306,7 +8317,7 @@ const INVEST_LEVELS = [
     title: "Stocks, ETFs, Bonds & Crypto",
     subtitle: "What you are actually buying",
     icon: "barChart",
-    color: "#00D2A0",
+    color: "#30D158",
     unlocked: true,
     lessons: [
       {
@@ -8352,7 +8363,7 @@ const INVEST_LEVELS = [
     title: "Your First ETF",
     subtitle: "Picking one and actually starting",
     icon: "target",
-    color: "#00D2A0",
+    color: "#30D158",
     unlocked: false,
     lessons: [
       {
@@ -8386,7 +8397,7 @@ const INVEST_LEVELS = [
     title: "Understanding Risk",
     subtitle: "What you can actually stomach",
     icon: "shield",
-    color: "#4FACFE",
+    color: "#0A84FF",
     unlocked: false,
     lessons: [
       {
@@ -8408,7 +8419,7 @@ const INVEST_LEVELS = [
     title: "Tax-Advantaged Accounts",
     subtitle: "The accounts that change everything",
     icon: "dollarSign",
-    color: "#F5A623",
+    color: "#FFD60A",
     unlocked: false,
     lessons: [
       {
@@ -8430,7 +8441,7 @@ const INVEST_LEVELS = [
     title: "Building Your Portfolio",
     subtitle: "Putting it all together",
     icon: "pieChart",
-    color: "#7C5CFC",
+    color: "#8280EC",
     unlocked: false,
     lessons: [
       {
@@ -8644,7 +8655,7 @@ function InvestEducationPath({ onTabChange, initialProgress = null, onSaveProgre
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
 
       {/* XP + progress header */}
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)" }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
           <div>
             <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Investment Path</p>
@@ -8741,7 +8752,7 @@ function InvestEducationPath({ onTabChange, initialProgress = null, onSaveProgre
         </div>
       </div>
 
-      <p style={{ color: "#1A1940", fontSize: 11, textAlign: "center" }}>Investment education is for informational purposes only and does not constitute financial advice.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>Investment education is for informational purposes only and does not constitute financial advice.</p>
     </div>
   );
 }
@@ -8802,7 +8813,7 @@ function SideHustleTab({ profile, initialHustles = [], onPersistHustle = () => {
   return (
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
       {/* Header */}
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)" }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)" }}>
         <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Side Hustle Income</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 10 }}>
           {[
@@ -8959,7 +8970,7 @@ function TaxEstimator({ profile, hustles = [] }) {
 
   return (
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #1A0800 0%, #0F0E2A 100%)" }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1A0800 0%, #000000 100%)" }}>
         <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Tax Estimator</p>
         <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 16px", lineHeight: 1.5 }}>Estimate what you owe so nothing surprises you on April 15.</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -9116,7 +9127,7 @@ function LifeInsuranceCalculator({ profile, goals = [], debts = [], assets = [] 
 
   return (
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)" }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)" }}>
         <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Life Insurance Needs</p>
         <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 16px", lineHeight: 1.5 }}>How much coverage your family would actually need — using the DIME method.</p>
         <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "16px" }}>
@@ -9279,7 +9290,7 @@ function RetirementCalculator({ profile, goals = [] }) {
 
   return (
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)" }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)" }}>
         <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Retirement & FIRE Calculator</p>
         <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 16px", lineHeight: 1.5 }}>See if you're really on track — not just guessing.</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -9516,7 +9527,7 @@ function MortgageCalculator({ profile, goals = [], debts = [] }) {
 
   return (
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #0A1A2A 0%, #0F0E2A 100%)" }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #0A1A2A 0%, #000000 100%)" }}>
         <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Mortgage Calculator</p>
         <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 16px", lineHeight: 1.5 }}>See what a home really costs — and if it fits your real numbers.</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -9820,7 +9831,7 @@ function EmergencyFundCalc({ profile, goals, onNavigate }) {
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
 
       {/* Hero */}
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #0F0E2A 0%, #141330 100%)", textAlign: "center", padding: 24 }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #000000 0%, #1C1C1E 100%)", textAlign: "center", padding: 24 }}>
         <div style={{ width: 70, height: 70, borderRadius: 18, background: "rgba(0,210,160,0.15)", border: "1px solid rgba(0,210,160,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
           <Icon name="shield" size={32} color={T.green} strokeWidth={1.5} />
         </div>
@@ -10066,7 +10077,7 @@ function JonesesComparison({ profile, goals, debts = [], netWorth = 0 }) {
 
   return (
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)" }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)" }}>
         <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 6px" }}>The Joneses Comparison</p>
         <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 4px", lineHeight: 1.5 }}>See how you actually stack up.</p>
         <p style={{ color: T.textSub, fontSize: 13, margin: 0, lineHeight: 1.6 }}>Your real numbers against published national financial data. No names. No judgment. Just truth.</p>
@@ -10134,7 +10145,7 @@ function JonesesComparison({ profile, goals, debts = [], netWorth = 0 }) {
         ))}
       </div>
 
-      <p style={{ color: "#1A1940", fontSize: 11, textAlign: "center" }}>All comparisons use anonymized aggregate data. No individual user data is shared. National figures from Federal Reserve 2023 SCF.</p>
+      <p style={{ color: T.textSub, fontSize: 12, textAlign: "center" }}>All comparisons use anonymized aggregate data. No individual user data is shared. National figures from Federal Reserve 2023 SCF.</p>
     </div>
   );
 }
@@ -10555,14 +10566,14 @@ const STUDENT_LESSONS = [
 ];
 
 const SCHOOL_UNITS = [
-  { id: 1, name: "Money Basics",          icon: "dollarSign", color: "#9B6BFF" },
-  { id: 2, name: "Earning",               icon: "trendUp",    color: "#FF6B35" },
-  { id: 3, name: "Banking & Saving",      icon: "wallet",     color: "#00D2A0" },
-  { id: 4, name: "Credit, Debt & Danger", icon: "shield",     color: "#FF5A6E" },
-  { id: 5, name: "Investing",             icon: "trendUp",    color: "#00E5CC" },
-  { id: 6, name: "Taxes & Income",        icon: "pieChart",   color: "#4FACFE" },
-  { id: 7, name: "Protection & Risk",     icon: "lock",       color: "#FF4FA1" },
-  { id: 8, name: "Building Wealth",       icon: "award",      color: "#F5A623" },
+  { id: 1, name: "Money Basics",          icon: "dollarSign", color: "#BF5AF2" },
+  { id: 2, name: "Earning",               icon: "trendUp",    color: "#FF9F0A" },
+  { id: 3, name: "Banking & Saving",      icon: "wallet",     color: "#30D158" },
+  { id: 4, name: "Credit, Debt & Danger", icon: "shield",     color: "#FF453A" },
+  { id: 5, name: "Investing",             icon: "trendUp",    color: "#40C8E0" },
+  { id: 6, name: "Taxes & Income",        icon: "pieChart",   color: "#0A84FF" },
+  { id: 7, name: "Protection & Risk",     icon: "lock",       color: "#FF375F" },
+  { id: 8, name: "Building Wealth",       icon: "award",      color: "#FFD60A" },
 ];
 
 const SCHOOL_STANDARDS = [
@@ -11291,7 +11302,7 @@ function SchoolMode({ onExitSchoolMode, initialProgress = null, onSaveProgress =
     <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
 
       {/* Student header */}
-      <div style={{ ...S.card, background: "linear-gradient(135deg, #141330 0%, #0F0E2A 100%)", position: "relative", overflow: "hidden" }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -30, right: -20, width: 120, height: 120, borderRadius: "50%", background: "transparent" }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
           <div>
@@ -11799,6 +11810,10 @@ export default function App() {
   const [screen, setScreen] = useState("auth");
   const [profile, setProfile] = useState(null);
   const [isPro, setIsPro] = useState(false);
+  const TRIAL_DAYS = 60; // temporarily long while testing with real users before billing is live — dial back to ~14 once Stripe is set up
+  const daysSinceSignup = authUser?.created_at ? Math.floor((Date.now() - new Date(authUser.created_at).getTime()) / 86400000) : 0;
+  const trialDaysLeft = Math.max(0, TRIAL_DAYS - daysSinceSignup);
+  const trialExpired = authUser && !isPro && trialDaysLeft <= 0;
   const [tab, setTab] = useState("home");
   const [tipIdx, setTipIdx] = useState(0);
   const [goals, setGoals] = useState([]);
@@ -11876,6 +11891,7 @@ export default function App() {
       const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}&limit=1`, { headers });
       const profData = await profRes.json();
       const prof = profData[0];
+      if (prof) setIsPro(!!prof.is_pro);
       if (prof && prof.monthly_income) {
         // Prefer the full saved snapshot (covers every onboarding field); fall back to the
         // individual scalar columns for rows saved before full_data existed.
@@ -11998,6 +12014,18 @@ export default function App() {
         full_data: p,
         updated_at: new Date().toISOString(),
       }),
+    });
+  };
+
+  // Persist subscription status so it survives logout/login — without this, the
+  // trial-expiry gate would re-trap someone on every fresh login even after "upgrading"
+  const persistIsPro = async (value) => {
+    setIsPro(value);
+    if (!authUser) return;
+    await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": `Bearer ${sb._token() || SUPABASE_KEY}`, "Prefer": "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ id: authUser.id, is_pro: value, updated_at: new Date().toISOString() }),
     });
   };
 
@@ -12299,7 +12327,8 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
   if (screen === "fullonboarding") return <>{fonts}<Onboarding onComplete={handleOnboardingComplete} /></>;
 if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { if (g) { setGoals(p => [...p, g]); saveGoal(g); } setScreen("app"); setTab("goals"); }} onCancel={() => setScreen("app")} /></>;
   if (screen === "resetPassword") return <>{fonts}<ResetPasswordScreen onDone={() => setScreen("app")} /></>;
-  if (screen === "pro") return <>{fonts}<ProScreen isPro={isPro} onClose={() => setScreen("app")} onUpgrade={() => { setIsPro(true); setScreen("app"); }} /></>;
+  if (screen === "pro") return <>{fonts}<ProScreen isPro={isPro} onClose={() => setScreen("app")} onUpgrade={() => { persistIsPro(true); setScreen("app"); }} /></>;
+  if (trialExpired && screen !== "auth") return <>{fonts}<TrialExpiredScreen onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setIsPro(false); setScreen("auth"); }} /></>;
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Inter',sans-serif", color: T.text, maxWidth: 420, margin: "0 auto", position: "relative", paddingBottom: 80, overflow: "hidden" }}>
@@ -12340,6 +12369,15 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
           </div>
         </div>
       </div>
+
+      {!isPro && trialDaysLeft <= TRIAL_DAYS && (
+        <button onClick={() => setScreen("pro")} style={{ display: "block", width: "100%", background: trialDaysLeft <= 3 ? "rgba(255,90,110,0.12)" : "rgba(123,110,246,0.1)", border: "none", borderBottom: `1px solid ${trialDaysLeft <= 3 ? "rgba(255,90,110,0.25)" : "rgba(123,110,246,0.2)"}`, padding: "10px 20px", cursor: "pointer", textAlign: "left", fontFamily: "'Inter',sans-serif" }}>
+          <span style={{ color: trialDaysLeft <= 3 ? T.red : T.purple, fontSize: 12, fontWeight: 700 }}>
+            {trialDaysLeft > 0 ? `${trialDaysLeft} day${trialDaysLeft !== 1 ? "s" : ""} left in your free trial` : "Your free trial ends today"}
+          </span>
+          <span style={{ color: T.textSub, fontSize: 12 }}> — tap to see plans</span>
+        </button>
+      )}
 
       {tab === "home" && (
         <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -12698,10 +12736,10 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab initialHoldings={dbHoldings} onPersistHolding={persistHolding} onDeleteHolding={removeHoldingDb} /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
       {tab === "deals" && <div style={{ paddingTop: 16 }}><DealsTab /></div>}
-      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} assets={dbAssets} liabilities={dbLiabs} debts={dbDebts} envelopes={dbEnvelopes} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setDbEnvelopes([]); setAuthReady(true); }} /></div>}
+      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} assets={dbAssets} liabilities={dbLiabs} debts={dbDebts} envelopes={dbEnvelopes} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setDbEnvelopes([]); setIsPro(false); setAuthReady(true); }} /></div>}
 
       {/* Bottom Nav — primary 6 tabs + More */}
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(8,9,26,0.97)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(123,110,246,0.15)", zIndex: 100, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)" }}>
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(28,28,30,0.82)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)", borderTop: "1px solid rgba(255,255,255,0.08)", zIndex: 100 }}>
         {/* More drawer — slides up when open */}
         {showMoreMenu && (
           <>
