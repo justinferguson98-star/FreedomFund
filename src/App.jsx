@@ -5100,18 +5100,47 @@ function BillsTab({ profileSubs = [], initialBills = [], onPersist = () => {}, o
 }
 
 // ── Daily Check-In ────────────────────────────────────────────────────────────
-function DailyCheckIn({ profile, goals, onClose, onLog }) {
+function DailyCheckIn({ profile, goals, checkInLog = [], onClose, onLog }) {
   const [spent, setSpent] = useState("");
   const [category, setCategory] = useState("Food");
   const [note, setNote] = useState("");
-  const [done, setDone] = useState(false);
+  const [loggedThisSession, setLoggedThisSession] = useState([]);
+  const [showSummary, setShowSummary] = useState(false);
   const dailyLimit = Math.round(((profile?.monthlyIncome || 4200) - (profile?.totalFixed || 2100)) / 30);
   const spentAmt = parseFloat(spent) || 0;
-  const isOver = spentAmt > dailyLimit;
   const cats = ["Food", "Transport", "Shopping", "Entertainment", "Health", "Other"];
   const topGoal = goals.reduce((a, g) => (g.target - g.saved < a.target - a.saved ? g : a), goals[0]);
 
-  if (done) return (
+  const sessionTotal = loggedThisSession.reduce((a, e) => a + e.amount, 0);
+  const isOver = sessionTotal > dailyLimit;
+
+  // Real "quick repeat" suggestions — built from your actual recent check-ins, not guesses.
+  // Groups identical amount+category+note combos and surfaces the ones you log most often.
+  const recentSuggestions = (() => {
+    const counts = {};
+    checkInLog.slice(-40).forEach(e => {
+      const key = `${e.amount}|${e.category}|${e.note || ""}`;
+      counts[key] = (counts[key] || { amount: e.amount, category: e.category, note: e.note, count: 0 });
+      counts[key].count += 1;
+    });
+    return Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 4);
+  })();
+
+  const addEntry = () => {
+    if (!spent) return;
+    const entry = { amount: spentAmt, category, note };
+    setLoggedThisSession(p => [...p, entry]);
+    onLog(entry);
+    setSpent(""); setNote("");
+  };
+
+  const applySuggestion = (s) => {
+    setSpent(String(s.amount)); setCategory(s.category); setNote(s.note || "");
+  };
+
+  const finish = () => setShowSummary(true);
+
+  if (showSummary) return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(10px)", padding: 24 }}>
       <div style={{ ...S.card, width: "100%", maxWidth: 360, textAlign: "center", padding: 32 }}>
         <div style={{ width: 64, height: 64, borderRadius: 18, background: isOver ? `${T.red}18` : `${T.green}18`, border: `1px solid ${isOver ? T.red : T.green}40`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
@@ -5119,9 +5148,8 @@ function DailyCheckIn({ profile, goals, onClose, onLog }) {
         </div>
         <h3 style={{ color: T.text, fontSize: 20, fontWeight: 800, margin: "0 0 8px" }}>{isOver ? "Over budget today" : "Great job today!"}</h3>
         <p style={{ color: T.textMid, fontSize: 13, margin: "0 0 20px", lineHeight: 1.6 }}>
-          {isOver
-            ? `You spent $${spentAmt} vs your $${dailyLimit} daily target. That is $${(spentAmt - dailyLimit).toFixed(2)} over. Tomorrow is a fresh start.`
-            : `You spent $${spentAmt} vs your $${dailyLimit} daily target. You saved $${(dailyLimit - spentAmt).toFixed(2)} today.`}
+          {loggedThisSession.length} item{loggedThisSession.length !== 1 ? "s" : ""} logged, ${sessionTotal.toFixed(2)} total vs your ${dailyLimit} daily target.
+          {isOver ? ` That's $${(sessionTotal - dailyLimit).toFixed(2)} over — tomorrow is a fresh start.` : ` You saved $${(dailyLimit - sessionTotal).toFixed(2)} today.`}
         </p>
         {topGoal && (
           <div style={{ background: "rgba(123,110,246,0.1)", border: "1px solid rgba(123,110,246,0.2)", borderRadius: 10, padding: 12, marginBottom: 20 }}>
@@ -5137,29 +5165,50 @@ function DailyCheckIn({ profile, goals, onClose, onLog }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center", backdropFilter: "blur(10px)" }}>
-      <div style={{ background: T.surface, borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 420, border: "1px solid rgba(255,255,255,0.09)", borderBottom: "none", padding: 24 }}>
+      <div style={{ background: T.surface, borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 420, border: "1px solid rgba(255,255,255,0.09)", borderBottom: "none", padding: 24, maxHeight: "88vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 6 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ color: T.textSub, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", margin: 0 }}>Daily Check-In</p>
             <h3 style={{ color: T.text, fontSize: 20, fontWeight: 800, margin: "3px 0 0" }}>What did you spend today?</h3>
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button onClick={loggedThisSession.length > 0 ? finish : onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Icon name="x" size={16} color={T.textSub} />
           </button>
         </div>
-        <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 20px" }}>Daily target: <strong style={{ color: T.green }}>${dailyLimit}</strong></p>
+        <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 16px" }}>Daily target: <strong style={{ color: T.green }}>${dailyLimit}</strong></p>
+
+        {loggedThisSession.length > 0 && (
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: "10px 12px", marginBottom: 16 }}>
+            {loggedThisSession.map((e, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: i === 0 ? "0 0 6px" : "6px 0", borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ color: T.textMid, fontSize: 12 }}>{e.category}{e.note ? ` — ${e.note}` : ""}</span>
+                <span style={{ color: T.text, fontSize: 12, fontWeight: 700 }}>${e.amount.toFixed(2)}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 6, marginTop: 4, borderTop: `1px solid ${T.border}` }}>
+              <span style={{ color: T.textSub, fontSize: 11, fontWeight: 700 }}>SESSION TOTAL</span>
+              <span style={{ color: isOver ? T.red : T.green, fontSize: 12, fontWeight: 800 }}>${sessionTotal.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+
+        {recentSuggestions.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={S.label}>Quick repeat</label>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {recentSuggestions.map((s, i) => (
+                <button key={i} onClick={() => applySuggestion(s)} style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: 99, padding: "6px 12px", cursor: "pointer", color: T.textMid, fontSize: 12, fontFamily: "'Inter',sans-serif" }}>
+                  ${s.amount} · {s.category}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div style={{ position: "relative", marginBottom: 14 }}>
           <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: T.textSub, fontSize: 20, fontWeight: 700 }}>$</span>
-          <input value={spent} onChange={e => setSpent(e.target.value)} type="number" placeholder="0.00" autoFocus style={{ ...S.input, paddingLeft: 36, fontSize: 28, fontWeight: 800, color: isOver && spent ? T.red : T.text }} />
+          <input value={spent} onChange={e => setSpent(e.target.value)} type="number" placeholder="0.00" autoFocus style={{ ...S.input, paddingLeft: 36, fontSize: 28, fontWeight: 800, color: T.text }} onKeyDown={e => e.key === "Enter" && addEntry()} />
         </div>
-        {spent && (
-          <div style={{ background: isOver ? `${T.red}0f` : `${T.green}0f`, border: `1px solid ${isOver ? T.red : T.green}25`, borderRadius: 8, padding: 10, marginBottom: 14 }}>
-            <p style={{ color: isOver ? T.red : T.green, fontSize: 12, fontWeight: 600, margin: 0 }}>
-              {isOver ? `$${(spentAmt - dailyLimit).toFixed(2)} over your daily limit` : `$${(dailyLimit - spentAmt).toFixed(2)} under your daily limit`}
-            </p>
-          </div>
-        )}
 
         <label style={S.label}>Category</label>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
@@ -5169,9 +5218,16 @@ function DailyCheckIn({ profile, goals, onClose, onLog }) {
         </div>
 
         <label style={S.label}>Note (optional)</label>
-        <input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Lunch at work, Uber home..." style={{ ...S.input, marginBottom: 18 }} />
+        <input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Lunch at work, Uber home..." style={{ ...S.input, marginBottom: 18 }} onKeyDown={e => e.key === "Enter" && addEntry()} />
 
-        <button onClick={() => { if (spent) { onLog({ amount: spentAmt, category, note }); setDone(true); } }} style={{ ...S.primaryBtn(), opacity: spent ? 1 : 0.4 }}>Log My Day</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={addEntry} style={{ ...S.primaryBtn(), flex: loggedThisSession.length > 0 ? 1 : undefined, opacity: spent ? 1 : 0.4 }}>
+            {loggedThisSession.length > 0 ? "Add Another" : "Log This"}
+          </button>
+          {loggedThisSession.length > 0 && (
+            <button onClick={finish} style={{ ...S.ghostBtn, flex: 1 }}>I'm Done</button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -9798,6 +9854,158 @@ function MortgageCalculator({ profile, goals = [], debts = [] }) {
   );
 }
 
+// ── Real Spending Trends — built entirely from actual logged check-ins ──────
+function TrendsTab({ checkInLog = [], profile }) {
+  const [monthsBack, setMonthsBack] = useState(6);
+  const now = new Date();
+  const cats = ["Food", "Transport", "Shopping", "Entertainment", "Health", "Other"];
+  const catColor = { Food: T.green, Transport: T.accent, Shopping: T.purple, Entertainment: T.red, Health: T.teal, Other: T.textSub };
+
+  // Build real month buckets — oldest to newest, ending at the current month
+  const months = Array.from({ length: monthsBack }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (monthsBack - 1 - i), 1);
+    return { year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString([], { month: "short" }) };
+  });
+
+  const monthData = months.map(({ year, month, label }) => {
+    const entries = checkInLog.filter(e => { const d = new Date(e.date); return !isNaN(d) && d.getFullYear() === year && d.getMonth() === month; });
+    const byCategory = {};
+    cats.forEach(c => byCategory[c] = 0);
+    entries.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + (parseFloat(e.amount) || 0); });
+    const total = Object.values(byCategory).reduce((a, b) => a + b, 0);
+    const daysLogged = new Set(entries.map(e => e.date)).size;
+    return { year, month, label, total: Math.round(total), byCategory, daysLogged, entryCount: entries.length };
+  });
+
+  const monthsWithData = monthData.filter(m => m.total > 0);
+  const hasEnoughData = monthsWithData.length >= 2;
+
+  const currentMonth = monthData[monthData.length - 1];
+  const priorMonth = monthData[monthData.length - 2];
+  const avgMonthly = monthsWithData.length > 0 ? Math.round(monthsWithData.reduce((a, m) => a + m.total, 0) / monthsWithData.length) : 0;
+
+  // Real category totals across the whole visible window, ranked
+  const categoryTotals = cats.map(c => ({
+    category: c,
+    total: monthData.reduce((a, m) => a + m.byCategory[c], 0),
+    color: catColor[c],
+  })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
+
+  // Real "biggest mover" — the category with the largest $ change from the prior month to the current one
+  // Compares the last two COMPLETE months only — comparing against the current,
+  // still-in-progress month would always look like a false "decrease" simply
+  // because the month isn't over yet, not because spending actually changed.
+  const biggestMover = (() => {
+    const complete = monthData.slice(0, -1);
+    const a = complete[complete.length - 1], b = complete[complete.length - 2];
+    if (!a || !b) return null;
+    let best = null;
+    cats.forEach(c => {
+      const diff = a.byCategory[c] - b.byCategory[c];
+      if (!best || Math.abs(diff) > Math.abs(best.diff)) best = { category: c, diff, color: catColor[c] };
+    });
+    return best && Math.abs(best.diff) >= 1 ? { ...best, label: a.label } : null;
+  })();
+
+  const maxMonthTotal = Math.max(...monthData.map(m => m.total), 1);
+  const W = 320, H = 110;
+
+  return (
+    <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12, paddingBottom: 24 }}>
+      <div style={{ ...S.card, background: "linear-gradient(135deg, #1C1C1E 0%, #000000 100%)" }}>
+        <p style={{ color: T.textSub, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", margin: "0 0 4px" }}>Spending Trends</p>
+        <p style={{ color: T.text, fontSize: 15, fontWeight: 700, margin: "0 0 16px", lineHeight: 1.5 }}>Where your real money actually went, over time.</p>
+        {hasEnoughData ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "11px 12px" }}>
+              <p style={{ color: T.accent, fontWeight: 900, fontSize: 18, margin: 0 }}>${avgMonthly.toLocaleString()}</p>
+              <p style={{ color: T.textSub, fontSize: 10, margin: "3px 0 0" }}>Avg monthly spend</p>
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "11px 12px" }}>
+              <p style={{ color: T.text, fontWeight: 900, fontSize: 18, margin: 0 }}>${currentMonth.total.toLocaleString()}</p>
+              <p style={{ color: T.textSub, fontSize: 10, margin: "3px 0 0" }}>This month so far</p>
+            </div>
+          </div>
+        ) : (
+          <p style={{ color: T.gold, fontSize: 12, margin: 0, lineHeight: 1.6 }}>Log check-ins across a couple of months and real trends will show up here.</p>
+        )}
+      </div>
+
+      {hasEnoughData && (
+        <>
+          <div style={S.card}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+              <SectionLabel>Monthly Total</SectionLabel>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[3, 6, 12].map(n => (
+                  <button key={n} onClick={() => setMonthsBack(n)} style={{ background: monthsBack === n ? T.accentLo : "rgba(255,255,255,0.04)", border: monthsBack === n ? `1px solid ${T.accent}50` : `1px solid ${T.border}`, borderRadius: 7, padding: "4px 10px", cursor: "pointer", color: monthsBack === n ? T.accent : T.textSub, fontSize: 11, fontWeight: 700, fontFamily: "'Inter',sans-serif" }}>{n}mo</button>
+                ))}
+              </div>
+            </div>
+            <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+              {monthData.map((m, i) => {
+                const barW = W / monthData.length - 8;
+                const barH = (m.total / maxMonthTotal) * (H - 20);
+                const x = (i * W) / monthData.length + 4;
+                return (
+                  <g key={i}>
+                    <rect x={x} y={H - 16 - barH} width={barW} height={barH} rx={4} fill={i === monthData.length - 1 ? T.accent : "rgba(255,255,255,0.15)"} />
+                  </g>
+                );
+              })}
+            </svg>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+              {monthData.map((m, i) => <span key={i} style={{ color: T.textSub, fontSize: 9 }}>{m.label}</span>)}
+            </div>
+          </div>
+
+          {biggestMover && (
+            <div style={{ ...S.card, background: biggestMover.diff > 0 ? `${T.red}0a` : `${T.green}0a`, border: `1px solid ${biggestMover.diff > 0 ? T.red : T.green}30` }}>
+              <SectionLabel>Biggest Change</SectionLabel>
+              <p style={{ color: biggestMover.diff > 0 ? T.red : T.green, fontSize: 14, fontWeight: 700, margin: "6px 0 4px" }}>
+                {biggestMover.category} {biggestMover.diff > 0 ? "up" : "down"} ${Math.abs(Math.round(biggestMover.diff)).toLocaleString()}
+              </p>
+              <p style={{ color: T.textMid, fontSize: 12, margin: 0, lineHeight: 1.6 }}>In {biggestMover.label}, vs the month before — {biggestMover.diff > 0 ? "worth keeping an eye on" : "nice work bringing this down"}.</p>
+            </div>
+          )}
+
+          <div style={S.card}>
+            <SectionLabel>Category Breakdown ({monthsBack}mo total)</SectionLabel>
+            {categoryTotals.map(c => {
+              const pct = categoryTotals[0].total > 0 ? Math.round((c.total / categoryTotals[0].total) * 100) : 0;
+              return (
+                <div key={c.category} style={{ padding: "9px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                    <span style={{ color: T.textMid, fontSize: 13 }}>{c.category}</span>
+                    <span style={{ color: T.text, fontWeight: 700, fontSize: 13 }}>${c.total.toLocaleString()}</span>
+                  </div>
+                  <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 99, height: 6 }}>
+                    <div style={{ width: `${pct}%`, height: "100%", borderRadius: 99, background: c.color }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={S.card}>
+            <SectionLabel>Logging Consistency</SectionLabel>
+            {monthData.filter(m => m.entryCount > 0).map(m => {
+              const daysInMonth = new Date(m.year, m.month + 1, 0).getDate();
+              const pct = Math.round((m.daysLogged / daysInMonth) * 100);
+              return (
+                <div key={m.label + m.year} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                  <span style={{ color: T.textMid, fontSize: 12 }}>{m.label}</span>
+                  <span style={{ color: T.textSub, fontSize: 12 }}>{m.daysLogged} of {daysInMonth} days logged ({pct}%)</span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function EmergencyFundCalc({ profile, goals, onNavigate }) {
   const [jobStability,   setJobStability]   = useState("moderate");
   const [healthFactor,   setHealthFactor]   = useState("healthy");
@@ -12259,6 +12467,7 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
     { id: "mortgage",  icon: "building",   label: "Mortgage"  },
     { id: "retirement",icon: "award",      label: "Retirement"},
     { id: "insurance", icon: "shield",     label: "Insurance" },
+    { id: "trends",    icon: "trendUp",    label: "Trends"    },
     { id: "joneses",   icon: "users",      label: "Joneses", hidden: true   },
     { id: "referral",  icon: "send",       label: "Referral", hidden: true  },
     { id: "school",    icon: "award",      label: "School"    },
@@ -12694,6 +12903,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "mortgage" && <div style={{ paddingTop: 16 }}><MortgageCalculator profile={profile} goals={goals} debts={dbDebts} /></div>}
       {tab === "retirement" && <div style={{ paddingTop: 16 }}><RetirementCalculator profile={profile} goals={goals} /></div>}
       {tab === "insurance" && <div style={{ paddingTop: 16 }}><LifeInsuranceCalculator profile={profile} goals={goals} debts={dbDebts} assets={dbAssets} /></div>}
+      {tab === "trends" && <div style={{ paddingTop: 16 }}><TrendsTab checkInLog={checkInLog} profile={profile} /></div>}
       {tab === "joneses"   && <div style={{ paddingTop: 16 }}><JonesesComparison profile={profile} goals={goals} debts={dbDebts} netWorth={dbAssets.reduce((a, x) => a + (Number(x.amount) || 0), 0) + goals.reduce((a, g) => a + g.saved, 0) - dbLiabs.reduce((a, x) => a + (Number(x.amount) || 0), 0)} /></div>}
       {tab === "referral"  && <div style={{ paddingTop: 16 }}><ReferralSystem profile={profile} /></div>}
       {tab === "networth"  && <div style={{ paddingTop: 16 }}><NetWorthTab goals={goals} profile={profile} initialAssets={dbAssets} initialLiabs={dbLiabs} onPersistAsset={persistAsset} onDeleteAsset={removeAssetDb} onPersistLiab={persistLiab} onDeleteLiab={removeLiabDb} snapshots={dbSnapshots} onSnapshot={persistSnapshot} /></div>}
@@ -12783,7 +12993,7 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       <DepositModal goal={depositGoal} onClose={() => setDepositGoal(null)} onConfirm={handleGoalDeposit} />
       {privacyGoal && <PrivacyModal goal={privacyGoal} onClose={() => setPrivacyGoal(null)} onSave={handlePrivacySave} />}
       {editGoal && <EditGoalModal goal={editGoal} onClose={() => setEditGoal(null)} onSave={handleGoalSave} onDelete={handleGoalDelete} />}
-      {showCheckIn && <DailyCheckIn profile={profile} goals={goals} onClose={() => setShowCheckIn(false)} onLog={async entry => { const newEntry = { ...entry, date: new Date().toISOString().split("T")[0] }; setCheckInLog(p => [...p, newEntry]); setStreak(s => s + 1); await logCheckIn(newEntry); }} />}
+      {showCheckIn && <DailyCheckIn profile={profile} goals={goals} checkInLog={checkInLog} onClose={() => setShowCheckIn(false)} onLog={async entry => { const today = new Date().toISOString().split("T")[0]; const newEntry = { ...entry, date: today }; const alreadyCheckedInToday = checkInLog.some(e => e.date === today); setCheckInLog(p => [...p, newEntry]); if (!alreadyCheckedInToday) setStreak(s => s + 1); await logCheckIn(newEntry); }} />}
       {showNotifications && <NotificationCenter notifications={notifications} onClose={() => setShowNotifications(false)} onRead={markRead} onReadAll={markAllRead} onNavigate={t => setTab(t)} onOpenSettings={() => { setShowNotifications(false); setShowNotifSettings(true); }} />}
       {showNotifSettings && <NotificationSettings onClose={() => setShowNotifSettings(false)} initialSettings={dbNotifSettings?.settings} initialDnd={dbNotifSettings?.dnd || false} onSave={persistNotifSettings} />}
     </div>
