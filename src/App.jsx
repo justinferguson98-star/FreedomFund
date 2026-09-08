@@ -6528,6 +6528,155 @@ function ZeroBasedBudget({ profile, checkInLog = [], initialEnvelopes = [], onPe
   );
 }
 
+// ── Sinking Funds — saving toward known future expenses, not open-ended ────
+// spending (envelopes) or long-term goals. Car maintenance, holiday gifts,
+// annual insurance — expenses you KNOW are coming, so they never blow up
+// your budget when they hit.
+function SinkingFunds({ initialFunds = [], onPersistFund = () => {}, onDeleteFund = () => {} }) {
+  const [funds, setFunds] = useState(initialFunds);
+  const [showAdd, setShowAdd] = useState(false);
+  const [depositFund, setDepositFund] = useState(null);
+  const [depositAmt, setDepositAmt] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newTarget, setNewTarget] = useState("");
+  const [newDate, setNewDate] = useState("");
+  const [newRecurring, setNewRecurring] = useState(true);
+  const [newColor, setNewColor] = useState(T.gold);
+
+  const colorOptions = [T.gold, T.purple, T.accent, T.green, T.orange, T.red, T.teal];
+
+  const monthsUntil = (dateStr) => {
+    if (!dateStr) return 1;
+    const target = new Date(dateStr + "T00:00:00");
+    const now = new Date();
+    const months = (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth());
+    return Math.max(1, months);
+  };
+
+  const addFund = () => {
+    if (!newName.trim() || !newTarget || !newDate) return;
+    const fund = { id: Date.now(), name: newName.trim(), targetAmount: parseFloat(newTarget) || 0, targetDate: newDate, saved: 0, recurring: newRecurring, color: newColor };
+    setFunds(p => [...p, fund]);
+    onPersistFund(fund);
+    setNewName(""); setNewTarget(""); setNewDate(""); setShowAdd(false);
+  };
+
+  const deposit = () => {
+    if (!depositFund || !depositAmt) return;
+    const updated = { ...depositFund, saved: depositFund.saved + (parseFloat(depositAmt) || 0) };
+    setFunds(p => p.map(f => f.id === depositFund.id ? updated : f));
+    onPersistFund(updated);
+    setDepositFund(null); setDepositAmt("");
+  };
+
+  const markSpent = (fund) => {
+    if (fund.recurring) {
+      const nextDate = new Date(fund.targetDate + "T00:00:00");
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
+      const updated = { ...fund, saved: 0, targetDate: nextDate.toISOString().split("T")[0] };
+      setFunds(p => p.map(f => f.id === fund.id ? updated : f));
+      onPersistFund(updated);
+    } else {
+      setFunds(p => p.filter(f => f.id !== fund.id));
+      onDeleteFund(fund.id);
+    }
+  };
+
+  return (
+    <div style={{ padding: "0 16px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={S.card}>
+        <p style={{ color: T.textSub, fontSize: 12, margin: "0 0 4px", lineHeight: 1.6 }}>Save a little each month for expenses you know are coming — so they never wreck your budget when they hit.</p>
+      </div>
+
+      <div style={S.card}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <SectionLabel>Sinking Funds</SectionLabel>
+          <button onClick={() => setShowAdd(true)} style={{ background: "rgba(255,214,10,0.12)", border: "1px solid rgba(255,214,10,0.3)", borderRadius: 99, padding: "5px 13px", cursor: "pointer", color: T.gold, fontSize: 12, fontWeight: 700, fontFamily: "'Inter',sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
+            <Icon name="plus" size={12} color={T.gold} />Add
+          </button>
+        </div>
+        {funds.length === 0 && (
+          <p style={{ color: T.textSub, fontSize: 13, margin: 0, lineHeight: 1.6 }}>No sinking funds yet. Try "Christmas Gifts," "Car Maintenance," or "Annual Insurance" — anything you know is coming.</p>
+        )}
+        {funds.map(f => {
+          const remaining = f.targetAmount - f.saved;
+          const pct = f.targetAmount > 0 ? Math.min(100, Math.round((f.saved / f.targetAmount) * 100)) : 0;
+          const months = monthsUntil(f.targetDate);
+          const suggestedMonthly = remaining > 0 ? Math.ceil(remaining / months) : 0;
+          const isDue = new Date(f.targetDate + "T00:00:00") <= new Date();
+          return (
+            <div key={f.id} style={{ padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: `${f.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon name="target" size={14} color={f.color} />
+                  </div>
+                  <div>
+                    <p style={{ color: T.text, fontSize: 13, fontWeight: 700, margin: 0 }}>{f.name}{f.recurring && <span style={{ color: T.textSub, fontWeight: 400 }}> · renews yearly</span>}</p>
+                    <p style={{ color: T.textSub, fontSize: 11, margin: "1px 0 0" }}>${f.saved.toLocaleString()} of ${f.targetAmount.toLocaleString()} &middot; needed by {new Date(f.targetDate + "T00:00:00").toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}</p>
+                  </div>
+                </div>
+              </div>
+              <ProgressBar pct={pct} color={f.color} height={6} />
+              {!isDue && remaining > 0 && (
+                <p style={{ color: T.textSub, fontSize: 11, margin: "6px 0 0" }}>Save about <strong style={{ color: f.color }}>${suggestedMonthly.toLocaleString()}/mo</strong> to be ready in time.</p>
+              )}
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button onClick={() => setDepositFund(f)} style={{ flex: 1, background: `${f.color}14`, border: `1px solid ${f.color}35`, borderRadius: 8, padding: "6px 0", cursor: "pointer", color: f.color, fontSize: 11, fontWeight: 700, fontFamily: "'Inter',sans-serif" }}>Add Funds</button>
+                {isDue && <button onClick={() => markSpent(f)} style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "6px 0", cursor: "pointer", color: T.textMid, fontSize: 11, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>Mark Spent{f.recurring ? " & Renew" : ""}</button>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {showAdd && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)", padding: 20 }} onClick={() => setShowAdd(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: 18, padding: 24, width: "100%", maxWidth: 380, border: `1px solid ${T.borderHi}` }}>
+            <h3 style={{ color: T.text, fontSize: 17, fontWeight: 700, margin: "0 0 16px" }}>New Sinking Fund</h3>
+            <label style={S.label}>What's it for?</label>
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Christmas Gifts" style={{ ...S.input, marginBottom: 14 }} />
+            <label style={S.label}>Target amount ($)</label>
+            <div style={{ position: "relative", marginBottom: 14 }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={newTarget} onChange={e => setNewTarget(e.target.value)} type="number" style={{ ...S.input, paddingLeft: 28 }} />
+            </div>
+            <label style={S.label}>Needed by</label>
+            <input value={newDate} onChange={e => setNewDate(e.target.value)} type="date" style={{ ...S.input, marginBottom: 14 }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div>
+                <p style={{ color: T.text, fontSize: 13, fontWeight: 600, margin: 0 }}>Renews every year</p>
+                <p style={{ color: T.textSub, fontSize: 11, margin: "2px 0 0" }}>For recurring expenses like holidays or insurance</p>
+              </div>
+              <Toggle value={newRecurring} onChange={setNewRecurring} />
+            </div>
+            <label style={S.label}>Color</label>
+            <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+              {colorOptions.map(c => (
+                <button key={c} onClick={() => setNewColor(c)} style={{ width: 28, height: 28, borderRadius: "50%", background: c, border: newColor === c ? "2px solid #fff" : "2px solid transparent", cursor: "pointer" }} />
+              ))}
+            </div>
+            <button onClick={addFund} disabled={!newName.trim() || !newTarget || !newDate} style={{ ...S.primaryBtn(newColor), opacity: (newName.trim() && newTarget && newDate) ? 1 : 0.5 }}>Create Fund</button>
+          </div>
+        </div>
+      )}
+
+      {depositFund && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)", padding: 20 }} onClick={() => { setDepositFund(null); setDepositAmt(""); }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: 18, padding: 24, width: "100%", maxWidth: 360, border: `1px solid ${T.borderHi}` }}>
+            <h3 style={{ color: T.text, fontSize: 16, fontWeight: 700, margin: "0 0 14px" }}>Add to {depositFund.name}</h3>
+            <div style={{ position: "relative", marginBottom: 18 }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.textSub }}>$</span>
+              <input value={depositAmt} onChange={e => setDepositAmt(e.target.value)} type="number" placeholder="0.00" autoFocus style={{ ...S.input, paddingLeft: 28, fontSize: 18, fontWeight: 700 }} />
+            </div>
+            <button onClick={deposit} disabled={!depositAmt} style={{ ...S.primaryBtn(depositFund.color), opacity: depositAmt ? 1 : 0.5 }}>Add Funds</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FinancialCalendar({ goals, bills = [], checkInLog = [], profile }) {
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -12056,6 +12205,8 @@ export default function App() {
   const [dbNotifSettings, setDbNotifSettings] = useState(null);
   const [dbHustles, setDbHustles] = useState([]);
   const [dbEnvelopes, setDbEnvelopes] = useState([]);
+  const [dbSinkingFunds, setDbSinkingFunds] = useState([]);
+  const [budgetSubTab, setBudgetSubTab] = useState("envelopes");
   const [restoring, setRestoring] = useState(true);
 
   // Restore previous session on page load (stay signed in) — and handle the
@@ -12195,6 +12346,10 @@ export default function App() {
       const envRows = await dbRows("budget_envelopes", uid);
       if (Array.isArray(envRows)) setDbEnvelopes(envRows.map(r => ({ id: r.id, category: r.category, amount: Number(r.amount), color: r.color, icon: r.icon || "wallet", rolloverBalance: Number(r.rollover_balance) || 0, lastRolloverMonth: r.last_rollover_month || null })));
 
+      // Load sinking funds
+      const sfRows = await dbRows("sinking_funds", uid);
+      if (Array.isArray(sfRows)) setDbSinkingFunds(sfRows.map(r => ({ id: r.id, name: r.name, targetAmount: Number(r.target_amount), targetDate: r.target_date, saved: Number(r.saved) || 0, recurring: !!r.recurring, color: r.color || T.gold })));
+
     } catch (err) {
       console.error("Error loading user data:", err);
       setScreen("onboarding");
@@ -12306,6 +12461,14 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
   };
   const removeEnvelopeDb = (id) => { if (authUser) dbDelete("budget_envelopes", id, authUser.id); };
 
+  // ── Persist sinking funds ────────────────────────────────────────────
+  const persistSinkingFund = (f) => {
+    setDbSinkingFunds(prev => prev.some(x => x.id === f.id) ? prev.map(x => x.id === f.id ? f : x) : [...prev, f]);
+    if (!authUser) return;
+    dbUpsert("sinking_funds", { id: f.id, user_id: authUser.id, name: f.name, target_amount: f.targetAmount, target_date: f.targetDate, saved: f.saved, recurring: f.recurring, color: f.color });
+  };
+  const removeSinkingFundDb = (id) => { setDbSinkingFunds(prev => prev.filter(f => f.id !== id)); if (authUser) dbDelete("sinking_funds", id, authUser.id); };
+
   // ── Persist a daily net worth snapshot (one row per user per day) ─
   const lastSnapshotRef = useRef({ date: null, value: null });
   const persistSnapshot = (netWorth) => {
@@ -12324,7 +12487,7 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
     if (!authUser) return;
     const uid = authUser.id;
     const hdrs = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${sb._token() || SUPABASE_KEY}` };
-    const tables = ["goals", "bills", "assets", "liabilities", "check_ins", "school_progress", "class_members", "goal_transactions", "hustle_entries", "notification_reads", "subscriptions", "bill_payments", "debts", "networth_snapshots", "invest_holdings", "invest_education", "notification_settings", "budget_envelopes"];
+    const tables = ["goals", "bills", "assets", "liabilities", "check_ins", "school_progress", "class_members", "goal_transactions", "hustle_entries", "notification_reads", "subscriptions", "bill_payments", "debts", "networth_snapshots", "invest_holdings", "invest_education", "notification_settings", "budget_envelopes", "sinking_funds"];
     await Promise.all(tables.map(t =>
       fetch(`${SUPABASE_URL}/rest/v1/${t}?user_id=eq.${uid}`, { method: "DELETE", headers: hdrs }).catch(() => {})
     ));
@@ -12537,7 +12700,7 @@ const removeDebtDb  = (id) => { if (authUser) dbDelete("debts", id, authUser.id)
 if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { if (g) { setGoals(p => [...p, g]); saveGoal(g); } setScreen("app"); setTab("goals"); }} onCancel={() => setScreen("app")} /></>;
   if (screen === "resetPassword") return <>{fonts}<ResetPasswordScreen onDone={() => setScreen("app")} /></>;
   if (screen === "pro") return <>{fonts}<ProScreen isPro={isPro} onClose={() => setScreen("app")} onUpgrade={() => { persistIsPro(true); setScreen("app"); }} /></>;
-  if (trialExpired && screen !== "auth") return <>{fonts}<TrialExpiredScreen onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setIsPro(false); setScreen("auth"); }} /></>;
+  if (trialExpired && screen !== "auth") return <>{fonts}<TrialExpiredScreen onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setIsPro(false); setDbSinkingFunds([]); setScreen("auth"); }} /></>;
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Inter',sans-serif", color: T.text, maxWidth: 420, margin: "0 auto", position: "relative", paddingBottom: 80, overflow: "hidden" }}>
@@ -12942,11 +13105,22 @@ if (screen === "newGoal") return <>{fonts}<GoalCreationFlow onComplete={g => { i
       {tab === "review"    && <div style={{ paddingTop: 16 }}><AnnualReview goals={goals} profile={profile} checkInLog={checkInLog} streak={streak} bills={dbBills} netWorthSnapshots={dbSnapshots} /></div>}
       {tab === "calendar" && <div style={{ paddingTop: 16 }}><FinancialCalendar goals={goals} bills={dbBills} checkInLog={checkInLog} profile={profile} /></div>}
       {tab === "bills" && <div style={{ paddingTop: 16 }}><BillsTab profileSubs={profile?.subscriptionsList || []} initialBills={dbBills} onPersist={persistBill} onDelete={removeBillDb} /></div>}
-      {tab === "budget" && <div style={{ paddingTop: 16 }}><ZeroBasedBudget profile={profile} checkInLog={checkInLog} initialEnvelopes={dbEnvelopes} onPersistEnvelope={persistEnvelope} onDeleteEnvelope={removeEnvelopeDb} /></div>}
+      {tab === "budget" && (
+        <div style={{ paddingTop: 16 }}>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 5, display: "flex", gap: 4, marginBottom: 12, marginLeft: 16, marginRight: 16 }}>
+            {[{ id: "envelopes", label: "Monthly Budget" }, { id: "sinking", label: "Sinking Funds" }].map(t => (
+              <button key={t.id} onClick={() => setBudgetSubTab(t.id)} style={{ flex: 1, background: budgetSubTab === t.id ? T.accentLo : "none", border: budgetSubTab === t.id ? `1px solid ${T.accent}50` : "1px solid transparent", borderRadius: 7, padding: "9px 0", cursor: "pointer", color: budgetSubTab === t.id ? T.accent : T.textSub, fontFamily: "'Inter',sans-serif", fontWeight: budgetSubTab === t.id ? 700 : 500, fontSize: 13 }}>{t.label}</button>
+            ))}
+          </div>
+          {budgetSubTab === "envelopes"
+            ? <ZeroBasedBudget profile={profile} checkInLog={checkInLog} initialEnvelopes={dbEnvelopes} onPersistEnvelope={persistEnvelope} onDeleteEnvelope={removeEnvelopeDb} />
+            : <SinkingFunds initialFunds={dbSinkingFunds} onPersistFund={persistSinkingFund} onDeleteFund={removeSinkingFundDb} />}
+        </div>
+      )}
       {tab === "invest" && <div style={{ paddingTop: 16 }}><InvestTab initialHoldings={dbHoldings} onPersistHolding={persistHolding} onDeleteHolding={removeHoldingDb} /></div>}
       {tab === "analytics" && <div style={{ paddingTop: 16 }}><AnalyticsTab /></div>}
       {tab === "deals" && <div style={{ paddingTop: 16 }}><DealsTab /></div>}
-      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} assets={dbAssets} liabilities={dbLiabs} debts={dbDebts} envelopes={dbEnvelopes} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setDbEnvelopes([]); setIsPro(false); setAuthReady(true); }} /></div>}
+      {tab === "profile" && <div style={{ paddingTop: 16 }}><ProfileTab goals={goals} userName={profile?.name} isPro={isPro} profile={profile} checkInLog={checkInLog} streak={streak} assets={dbAssets} liabilities={dbLiabs} debts={dbDebts} envelopes={dbEnvelopes} joinDate={authUser?.created_at ? new Date(authUser.created_at).toLocaleDateString([], { month: "long", year: "numeric" }) : null} onSaveProfile={(p) => { setProfile(p); if (authUser) saveProfile(p, authUser.id); }} onDeleteAccount={deleteAccountData} onUpgrade={() => setScreen("pro")} onSignOut={() => { sb.signOut(); setAuthUser(null); setProfile(null); setGoals([]); setCheckInLog([]); setStreak(0); setDbBills([]); setDbAssets([]); setDbLiabs([]); setDbSchool(null); setDbHoldings([]); setDbSnapshots([]); setDbDebts([]); setDbInvestEdu(null); setDbNotifSettings(null); setDbHustles([]); setDbEnvelopes([]); setDbSinkingFunds([]); setIsPro(false); setAuthReady(true); }} /></div>}
 
       {/* Bottom Nav — primary 6 tabs + More */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 420, background: "rgba(28,28,30,0.82)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)", borderTop: "1px solid rgba(255,255,255,0.08)", zIndex: 100 }}>
